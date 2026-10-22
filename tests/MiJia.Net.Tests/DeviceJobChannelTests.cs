@@ -27,6 +27,8 @@ public class DeviceJobChannelTests
         }
 
         public Task<MiotActionResult> RunActionAsync(MiotActionTarget target, CancellationToken cancellationToken = default) => Task.FromResult(new MiotActionResult());
+        public Task<List<MiJia.Net.Models.Scenes.SceneInfo>> GetScenesAsync(string? homeId = null, CancellationToken cancellationToken = default) => Task.FromResult(new List<MiJia.Net.Models.Scenes.SceneInfo>());
+        public Task<bool> RunSceneAsync(string sceneId, string? homeId = null, CancellationToken cancellationToken = default) => Task.FromResult(true);
     }
 
     [Fact]
