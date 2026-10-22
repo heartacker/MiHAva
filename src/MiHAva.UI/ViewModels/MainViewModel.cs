@@ -10,6 +10,7 @@ using MiHAva.UI.Services;
 using MiJia.Net.Cloud;
 using MiJia.Net.Models.Auth;
 using MiJia.Net.Models.Devices;
+using MiJia.Net.Models.Spec;
 using MiJia.Net.Spec;
 using MiJia.Net.State;
 
@@ -416,6 +417,10 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     private void RebuildRoomsForCurrentHome()
     {
+        // 记录用户当前选中的房间（刷新或重构时保持选中状态，避免跳回“全部”）
+        var previousRoomId = SelectedRoom?.Id;
+        var previousRoomName = SelectedRoom?.Name;
+
         var rawHome = SelectedHome?.RawHome;
         var didToRoomName = new Dictionary<string, string>();
         var homeDids = new HashSet<string>();
@@ -475,9 +480,21 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             Rooms.Add(r);
         }
-        var first = Rooms.FirstOrDefault();
-        if (first != null) first.IsSelected = true;
-        SelectedRoom = first;
+
+        // 尝试恢复之前选中的房间
+        RoomCategoryItem? targetRoom = null;
+        if (!string.IsNullOrEmpty(previousRoomId))
+        {
+            targetRoom = Rooms.FirstOrDefault(r => r.Id == previousRoomId);
+        }
+        if (targetRoom == null && !string.IsNullOrEmpty(previousRoomName))
+        {
+            targetRoom = Rooms.FirstOrDefault(r => r.Name == previousRoomName);
+        }
+        targetRoom ??= Rooms.FirstOrDefault();
+
+        if (targetRoom != null) targetRoom.IsSelected = true;
+        SelectedRoom = targetRoom;
 
         XiaoAiVm.RefreshSpeakers(currentHomeDevices);
 
@@ -502,9 +519,18 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             foreach (var card in _allDeviceCards)
             {
+                MiotSpecInstance? spec = null;
                 if (!string.IsNullOrEmpty(card.Device.SpecType))
                 {
-                    var spec = await _specClient.GetSpecInstanceAsync(card.Device.SpecType);
+                    spec = await _specClient.GetSpecInstanceAsync(card.Device.SpecType);
+                }
+                else if (!string.IsNullOrEmpty(card.Device.Model))
+                {
+                    spec = await _specClient.GetSpecByModelAsync(card.Device.Model);
+                }
+
+                if (spec != null)
+                {
                     card.ApplySpec(spec);
                 }
             }
@@ -602,6 +628,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
                 card?.UpdateProperty(r.Siid, r.Piid, r.Value);
             }
         }
+
+        UpdateSummary();
     }
 
     private void OnCardOpenDetailRequested(DeviceCardViewModel card)
