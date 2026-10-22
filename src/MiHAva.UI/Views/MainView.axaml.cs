@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using MiHAva.UI.ViewModels;
 
 namespace MiHAva.UI.Views;
 
@@ -24,10 +25,12 @@ public partial class MainView : UserControl
     {
         if (RoomsScrollViewer != null)
         {
-            RoomsScrollViewer.AddHandler(InputElement.PointerPressedEvent, OnRoomsPointerPressed, RoutingStrategies.Tunnel);
-            RoomsScrollViewer.AddHandler(InputElement.PointerMovedEvent, OnRoomsPointerMoved, RoutingStrategies.Tunnel);
-            RoomsScrollViewer.AddHandler(InputElement.PointerReleasedEvent, OnRoomsPointerReleased, RoutingStrategies.Tunnel);
-            RoomsScrollViewer.AddHandler(InputElement.PointerCaptureLostEvent, OnRoomsPointerCaptureLost, RoutingStrategies.Tunnel);
+            // 使用 Bubble 策略而非 Tunnel，确保内部 Button 能正常响应点击！
+            // 只有当拖拽发生时才通过 PointerMoved 触发滚动
+            RoomsScrollViewer.AddHandler(InputElement.PointerPressedEvent, OnRoomsPointerPressed, RoutingStrategies.Bubble);
+            RoomsScrollViewer.AddHandler(InputElement.PointerMovedEvent, OnRoomsPointerMoved, RoutingStrategies.Bubble);
+            RoomsScrollViewer.AddHandler(InputElement.PointerReleasedEvent, OnRoomsPointerReleased, RoutingStrategies.Bubble);
+            RoomsScrollViewer.AddHandler(InputElement.PointerCaptureLostEvent, OnRoomsPointerCaptureLost, RoutingStrategies.Bubble);
         }
     }
 
@@ -105,6 +108,14 @@ public partial class MainView : UserControl
 
     private void OnHomeItemClicked(object? sender, RoutedEventArgs e)
     {
+        if (sender is Button btn && btn.DataContext is HomeCategoryItem homeItem)
+        {
+            if (DataContext is MainViewModel mainVm)
+            {
+                mainVm.SelectHome(homeItem);
+            }
+        }
+
         if (HomeSwitcherButton?.Flyout != null)
         {
             HomeSwitcherButton.Flyout.Hide();
