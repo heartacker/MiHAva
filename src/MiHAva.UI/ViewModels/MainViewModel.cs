@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MiHAva.UI.Services;
 using MiJia.Net.Cloud;
 using MiJia.Net.Models.Auth;
 using MiJia.Net.Models.Devices;
@@ -155,12 +156,45 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         XiaoAiVm = new XiaoAiCommandViewModel(client);
     }
 
+    [ObservableProperty]
+    private string _currentThemeIcon = "🌙";
+
     /// <summary>
-    /// 初始化加载全部数据
+    /// 切换浅色 / 深色主题
+    /// </summary>
+    [RelayCommand]
+    public void ToggleTheme()
+    {
+        if (Avalonia.Application.Current != null)
+        {
+            var currentVariant = Avalonia.Application.Current.ActualThemeVariant;
+            if (currentVariant == Avalonia.Styling.ThemeVariant.Dark)
+            {
+                Avalonia.Application.Current.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Light;
+                CurrentThemeIcon = "🌙"; // 提示可切到暗色
+            }
+            else
+            {
+                Avalonia.Application.Current.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
+                CurrentThemeIcon = "☀️"; // 提示可切到浅色
+            }
+        }
+    }
+
+    /// <summary>
+    /// 初始化加载全部数据 (Offline-First 秒开呈现)
     /// </summary>
     public async Task InitializeAsync()
     {
-        await RefreshAllAsync();
+        // 1. 优先读取本地磁盘缓存，实现 UI 0 毫秒秒开
+        var cached = await DeviceCacheService.LoadCacheAsync();
+        if (cached != null && cached.Devices.Count > 0)
+        {
+            ApplyHomeAndDeviceData(cached.Homes, cached.Devices);
+        }
+
+        // 2. 静默拉取最新数据
+        _ = RefreshAllAsync();
         StartBackgroundPolling();
     }
 
@@ -177,80 +211,15 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             // 1. 获取家庭与房间
             var homes = await _client.GetHomesAsync();
-            var primaryHome = homes.FirstOrDefault();
-            if (primaryHome != null)
-            {
-                CurrentHomeName = primaryHome.Name;
-            }
 
             // 2. 获取设备列表
             var rawDevices = await _client.GetDevicesAsync();
 
-            // 建立 did -> roomName 映射字典
-            var didToRoomName = new Dictionary<string, string>();
-            var roomCategories = new List<RoomCategoryItem>
-            {
-                new() { Id = "__ALL__", Name = "全部设备", DeviceCount = rawDevices.Count }
-            };
+            // 3. 应用数据并刷新界面
+            ApplyHomeAndDeviceData(homes, rawDevices);
 
-            if (primaryHome != null)
-            {
-                foreach (var r in primaryHome.Rooms)
-                {
-                    foreach (var did in r.Dids)
-                    {
-                        didToRoomName[did] = r.Name;
-                    }
-                    roomCategories.Add(new RoomCategoryItem
-                    {
-                        Id = r.Id,
-                        Name = r.Name,
-                        DeviceCount = r.Dids.Count
-                    });
-                }
-            }
-
-            // 更新房间列表
-            Rooms.Clear();
-            foreach (var r in roomCategories)
-            {
-                Rooms.Add(r);
-            }
-            SelectedRoom = Rooms.FirstOrDefault();
-
-            // 自动刷新可用的小爱音箱
-            XiaoAiVm.RefreshSpeakers(rawDevices);
-
-            // 3. 构建卡片并加载 Spec
-            _allDeviceCards.Clear();
-            foreach (var dev in rawDevices)
-            {
-                if (didToRoomName.TryGetValue(dev.Did, out var rName))
-                {
-                    dev.RoomName = rName;
-                }
-                var card = new DeviceCardViewModel(dev, _jobChannel, _coordinator);
-                card.OpenDetailRequested += OnCardOpenDetailRequested;
-                _allDeviceCards.Add(card);
-            }
-
-            // 异步解析各设备的 Spec
-            _ = Task.Run(async () =>
-            {
-                foreach (var card in _allDeviceCards)
-                {
-                    if (!string.IsNullOrEmpty(card.Device.SpecType))
-                    {
-                        var spec = await _specClient.GetSpecInstanceAsync(card.Device.SpecType);
-                        card.ApplySpec(spec);
-                    }
-                }
-                // 拉取一轮开关状态
-                await PollDevicePropertiesOnceAsync();
-            });
-
-            ApplyFilter();
-            UpdateSummary();
+            // 4. 异步持久化到磁盘缓存
+            _ = DeviceCacheService.SaveCacheAsync(homes, rawDevices);
         }
         catch (Exception ex)
         {
@@ -260,6 +229,81 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             IsRefreshing = false;
         }
+    }
+
+    private void ApplyHomeAndDeviceData(List<HomeInfo> homes, List<DeviceInfo> rawDevices)
+    {
+        var primaryHome = homes.FirstOrDefault();
+        if (primaryHome != null)
+        {
+            CurrentHomeName = primaryHome.Name;
+        }
+
+        // 建立 did -> roomName 映射字典
+        var didToRoomName = new Dictionary<string, string>();
+        var roomCategories = new List<RoomCategoryItem>
+        {
+            new() { Id = "__ALL__", Name = "全部设备", DeviceCount = rawDevices.Count }
+        };
+
+        if (primaryHome != null)
+        {
+            foreach (var r in primaryHome.Rooms)
+            {
+                foreach (var did in r.Dids)
+                {
+                    didToRoomName[did] = r.Name;
+                }
+                roomCategories.Add(new RoomCategoryItem
+                {
+                    Id = r.Id,
+                    Name = r.Name,
+                    DeviceCount = r.Dids.Count
+                });
+            }
+        }
+
+        // 更新房间列表
+        Rooms.Clear();
+        foreach (var r in roomCategories)
+        {
+            Rooms.Add(r);
+        }
+        SelectedRoom = Rooms.FirstOrDefault();
+
+        // 自动刷新可用的小爱音箱
+        XiaoAiVm.RefreshSpeakers(rawDevices);
+
+        // 3. 构建卡片并加载 Spec
+        _allDeviceCards.Clear();
+        foreach (var dev in rawDevices)
+        {
+            if (didToRoomName.TryGetValue(dev.Did, out var rName))
+            {
+                dev.RoomName = rName;
+            }
+            var card = new DeviceCardViewModel(dev, _jobChannel, _coordinator);
+            card.OpenDetailRequested += OnCardOpenDetailRequested;
+            _allDeviceCards.Add(card);
+        }
+
+        // 异步解析各设备的 Spec
+        _ = Task.Run(async () =>
+        {
+            foreach (var card in _allDeviceCards)
+            {
+                if (!string.IsNullOrEmpty(card.Device.SpecType))
+                {
+                    var spec = await _specClient.GetSpecInstanceAsync(card.Device.SpecType);
+                    card.ApplySpec(spec);
+                }
+            }
+            // 拉取一轮开关状态
+            await PollDevicePropertiesOnceAsync();
+        });
+
+        ApplyFilter();
+        UpdateSummary();
     }
 
     partial void OnSearchKeywordChanged(string value) => ApplyFilter();

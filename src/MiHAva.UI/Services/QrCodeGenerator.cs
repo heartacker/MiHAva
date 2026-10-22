@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using Avalonia.Media.Imaging;
 using QRCoder;
@@ -14,6 +15,12 @@ public static class QrCodeGenerator
         byte[] bytes = pngQr.GetGraphic(pixelsPerModule);
 
         using var stream = new MemoryStream(bytes);
+        return new Bitmap(stream);
+    }
+
+    public static Bitmap FromBytes(byte[] imageBytes)
+    {
+        using var stream = new MemoryStream(imageBytes);
         return new Bitmap(stream);
     }
 }

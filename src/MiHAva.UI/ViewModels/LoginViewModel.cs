@@ -50,7 +50,14 @@ public partial class LoginViewModel : ObservableObject, IDisposable
             StatusMessage = "正在请求米家登录二维码...";
 
             var qrResult = await _authService.RequestLoginQrCodeAsync(_pollCts.Token);
-            QrBitmap = QrCodeGenerator.GenerateQrBitmap(qrResult.QrContent);
+            if (qrResult.QrBytes != null && qrResult.QrBytes.Length > 0)
+            {
+                QrBitmap = QrCodeGenerator.FromBytes(qrResult.QrBytes);
+            }
+            else
+            {
+                QrBitmap = QrCodeGenerator.GenerateQrBitmap(qrResult.QrContent);
+            }
             StatusMessage = "请使用米家 APP 扫描二维码登录";
             IsLoading = false;
 

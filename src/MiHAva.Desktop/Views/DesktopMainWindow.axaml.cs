@@ -10,18 +10,29 @@ namespace MiHAva.Desktop.Views;
 public partial class DesktopMainWindow : Window
 {
     private DesktopBoardWindow? _boardWindow;
+    public bool IsExplicitShutdown { get; set; } = false;
 
     public DesktopMainWindow()
     {
         InitializeComponent();
         _ = InitializeAppContentAsync();
+
+        // 拦截右上角关闭按钮，平滑最小化至系统托盘常驻
+        Closing += (s, e) =>
+        {
+            if (!IsExplicitShutdown)
+            {
+                e.Cancel = true;
+                Hide();
+            }
+        };
     }
 
     private async Task InitializeAppContentAsync()
     {
         var initialVm = await MiHAvaApplication.ResolveInitialViewModelAsync(onLoggedIn: mainVm =>
         {
-            SwitchToMainView(mainVm);
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => SwitchToMainView(mainVm));
         });
 
         if (initialVm is MainViewModel mainVm)

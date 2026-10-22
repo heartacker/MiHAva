@@ -62,7 +62,14 @@ public partial class DesktopApp : MiHAvaApplication
         };
 
         var exitItem = new NativeMenuItem("退出米家");
-        exitItem.Click += (s, e) => desktop.Shutdown();
+        exitItem.Click += (s, e) =>
+        {
+            if (_mainWindow != null)
+            {
+                _mainWindow.IsExplicitShutdown = true;
+            }
+            desktop.Shutdown();
+        };
 
         nativeMenu.Items.Add(openMainItem);
         nativeMenu.Items.Add(boardItem);

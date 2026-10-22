@@ -82,7 +82,14 @@
                          Width="300"/>
 
                 <!-- 右侧：常用功能按钮 -->
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <!-- 深色 / 浅色模式无缝切换 -->
+                    <Button Content="{Binding CurrentThemeIcon}" 
+                            Command="{Binding ToggleThemeCommand}"
+                            ToolTip.Tip="切换深色/浅色主题"
+                            Padding="10,6"
+                            CornerRadius="8"
+                            FontSize="13"/>
                     <Button Content="桌面挂件" 
                             Command="{Binding ToggleDesktopBoardCommand}"
                             Padding="12,6"

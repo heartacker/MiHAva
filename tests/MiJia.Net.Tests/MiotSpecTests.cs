@@ -109,6 +109,7 @@ public class MiotSpecTests
         Assert.Equal("Silent", modeProp.ValueList[1].Description);
 
         // 验证 Action
+        Assert.NotNull(switchService.Actions);
         var toggleAction = switchService.Actions[0];
         Assert.Equal("Toggle", toggleAction.Description);
         Assert.Empty(toggleAction.In);
