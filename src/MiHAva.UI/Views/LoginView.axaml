@@ -1,0 +1,79 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MiHAva.UI.ViewModels"
+             x:Class="MiHAva.UI.Views.LoginView"
+             x:DataType="vm:LoginViewModel">
+
+    <Grid HorizontalAlignment="Center" VerticalAlignment="Center" Margin="24">
+        <!-- 居中卡片容器 -->
+        <Border Width="380"
+                Padding="32,28"
+                CornerRadius="16"
+                Background="{DynamicResource SystemChromeMediumColor}"
+                BorderBrush="{DynamicResource SystemBaseLowColor}"
+                BorderThickness="1"
+                BoxShadow="0 8 30 0 #20000000">
+            <StackPanel Spacing="20" HorizontalAlignment="Center">
+                
+                <!-- 头部标题 -->
+                <StackPanel Spacing="6" HorizontalAlignment="Center">
+                    <TextBlock Text="米家客户端" 
+                               FontSize="24" 
+                               FontWeight="Bold" 
+                               HorizontalAlignment="Center"/>
+                    <TextBlock Text="使用米家 APP 扫码登录" 
+                               FontSize="13" 
+                               Foreground="{DynamicResource SystemBaseMediumColor}" 
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+
+                <!-- 二维码显示区 -->
+                <Border Width="220" Height="220"
+                        CornerRadius="12"
+                        Background="White"
+                        Padding="12"
+                        BorderBrush="{DynamicResource SystemBaseLowColor}"
+                        BorderThickness="1">
+                    <Grid>
+                        <!-- 二维码图片 -->
+                        <Image Source="{Binding QrBitmap}"
+                               IsVisible="{Binding !IsLoading}"
+                               Stretch="Uniform"/>
+
+                        <!-- 加载等待状态 -->
+                        <ProgressBar IsIndeterminate="True"
+                                     IsVisible="{Binding IsLoading}"
+                                     Width="50" Height="50"
+                                     HorizontalAlignment="Center"
+                                     VerticalAlignment="Center"/>
+
+                        <!-- 失效遮罩 -->
+                        <Border Background="#CC000000"
+                                CornerRadius="8"
+                                IsVisible="{Binding IsExpired}">
+                            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+                                <TextBlock Text="二维码已失效" 
+                                           Foreground="White" 
+                                           FontWeight="SemiBold"
+                                           HorizontalAlignment="Center"/>
+                                <Button Content="重新获取" 
+                                        Command="{Binding StartLoginCommand}"
+                                        HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- 底部提示信息 -->
+                <TextBlock Text="{Binding StatusMessage}"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           FontSize="13"
+                           Foreground="{DynamicResource SystemBaseMediumColor}"
+                           HorizontalAlignment="Center"
+                           MaxWidth="280"/>
+
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

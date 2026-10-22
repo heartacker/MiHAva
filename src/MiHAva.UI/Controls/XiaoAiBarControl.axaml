@@ -1,0 +1,60 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MiHAva.UI.ViewModels"
+             x:Class="MiHAva.UI.Controls.XiaoAiBarControl"
+             x:DataType="vm:XiaoAiCommandViewModel">
+
+    <Border Padding="12,8"
+            CornerRadius="12"
+            Background="{DynamicResource SystemChromeMediumColor}"
+            BorderBrush="{DynamicResource SystemBaseLowColor}"
+            BorderThickness="1">
+        
+        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto">
+            
+            <!-- 小爱标识 Badge -->
+            <Border Grid.Column="0"
+                    Background="{DynamicResource SystemAccentColor}"
+                    CornerRadius="6"
+                    Padding="8,4"
+                    Margin="0,0,10,0"
+                    VerticalAlignment="Center">
+                <TextBlock Text="小爱指令" 
+                           Foreground="White" 
+                           FontSize="11" 
+                           FontWeight="Bold"/>
+            </Border>
+
+            <!-- 音箱选择下拉框 -->
+            <ComboBox Grid.Column="1"
+                      ItemsSource="{Binding Speakers}"
+                      SelectedItem="{Binding SelectedSpeaker, Mode=TwoWay}"
+                      Width="130"
+                      Margin="0,0,10,0"
+                      VerticalAlignment="Center"/>
+
+            <!-- 指令文本输入框 -->
+            <TextBox Grid.Column="2"
+                     Text="{Binding CommandText, Mode=TwoWay}"
+                     PlaceholderText="输入文字指令，例如「打开客厅风扇」..."
+                     VerticalAlignment="Center"
+                     Margin="0,0,10,0"/>
+
+            <!-- 发送按钮 -->
+            <Button Grid.Column="3"
+                    Content="发送"
+                    Command="{Binding SendCommandCommand}"
+                    IsEnabled="{Binding !IsExecuting}"
+                    VerticalAlignment="Center"
+                    Padding="14,6"/>
+
+            <!-- 状态文案反馈 -->
+            <TextBlock Grid.Column="4"
+                       Text="{Binding FeedbackMessage}"
+                       FontSize="11"
+                       Foreground="{DynamicResource SystemBaseMediumColor}"
+                       VerticalAlignment="Center"
+                       Margin="10,0,0,0"/>
+        </Grid>
+    </Border>
+</UserControl>

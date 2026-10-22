@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net11.0;net10.0</TargetFrameworks>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="12.1.4" />
+    <PackageReference Include="AtomUI.Core" Version="6.2.8" />
+    <PackageReference Include="AtomUI.Controls" Version="6.2.8" />
+    <PackageReference Include="AtomUI.Controls.Shared" Version="6.2.8" />
+    <PackageReference Include="AtomUI.Icons.AntDesign" Version="6.2.8" />
+    <PackageReference Include="AtomUI.Fonts.AlibabaSans" Version="6.2.8" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="QRCoder" Version="1.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MiJia.Net\MiJia.Net.csproj" />
+  </ItemGroup>
+
+</Project>

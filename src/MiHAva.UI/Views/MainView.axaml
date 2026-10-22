@@ -1,0 +1,194 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MiHAva.UI.ViewModels"
+             xmlns:ctrl="using:MiHAva.UI.Controls"
+             x:Class="MiHAva.UI.Views.MainView"
+             x:DataType="vm:MainViewModel">
+
+    <UserControl.Styles>
+        <!-- 房间横向胶囊 Tab 样式 -->
+        <Style Selector="ListBox.roomTabs">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Padding" Value="0" />
+        </Style>
+        <Style Selector="ListBox.roomTabs > ListBoxItem">
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="ListBox.roomTabs > ListBoxItem:selected">
+            <Setter Property="Background" Value="#10B981" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <!-- 常用场景胶囊按钮样式 -->
+        <Style Selector="Button.scenePill">
+            <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.scenePill:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.03)" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
+        
+        <!-- 1. 顶栏：家庭切换下拉 + 全屋状态概览 + 快捷操作 -->
+        <Border Grid.Row="0"
+                Padding="24,18,24,12"
+                Background="{DynamicResource SystemChromeMediumColor}"
+                BorderBrush="{DynamicResource SystemBaseLowColor}"
+                BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+                
+                <!-- 左侧：家庭名称（大号字体带下拉箭头）+ 全屋设备开启统计 -->
+                <StackPanel Grid.Column="0" Spacing="4">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="{Binding CurrentHomeName}" 
+                                   FontSize="22" 
+                                   FontWeight="Bold"/>
+                        <TextBlock Text="▾" 
+                                   FontSize="16" 
+                                   Foreground="{DynamicResource SystemBaseMediumColor}" 
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding SummaryText}" 
+                                   FontSize="12" 
+                                   Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- 中间：搜索框 -->
+                <TextBox Grid.Column="1"
+                         Text="{Binding SearchKeyword, Mode=TwoWay}"
+                         PlaceholderText="搜索设备、型号或房间..."
+                         MaxWidth="340"
+                         HorizontalAlignment="Center"
+                         VerticalAlignment="Center"
+                         Width="300"/>
+
+                <!-- 右侧：常用功能按钮 -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <Button Content="桌面挂件" 
+                            Command="{Binding ToggleDesktopBoardCommand}"
+                            Padding="12,6"
+                            CornerRadius="8"/>
+                    <Button Content="刷新" 
+                            Command="{Binding RefreshAllCommand}"
+                            IsEnabled="{Binding !IsRefreshing}"
+                            Padding="12,6"
+                            CornerRadius="8"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 2. 全屋一键场景快捷横条 (参考截图 1、2：离家/回家/全关灯) -->
+        <Border Grid.Row="1" 
+                Padding="24,10" 
+                Background="{DynamicResource SystemChromeLowColor}">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <StackPanel Orientation="Horizontal">
+                    <!-- 一键关灯 -->
+                    <Button Classes="scenePill" Command="{Binding TurnOffAllLightsCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="💡" FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock Text="一键关灯" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- 离家模式 -->
+                    <Button Classes="scenePill" Command="{Binding LeaveHomeSceneCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="🏠" FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock Text="离家模式" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+
+                    <!-- 回家模式 -->
+                    <Button Classes="scenePill" Command="{Binding ArriveHomeSceneCommand}">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <TextBlock Text="✨" FontSize="14" VerticalAlignment="Center"/>
+                            <TextBlock Text="回家模式" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <!-- 3. 横向滚动吸顶房间胶囊 Tab 栏 (参考截图 1、4：全部 | 客厅 | 主卧 | 次卧 | 阳台...) -->
+        <Border Grid.Row="2" 
+                Padding="24,12" 
+                BorderBrush="{DynamicResource SystemBaseLowColor}" 
+                BorderThickness="0,0,0,1">
+            <Grid RowDefinitions="Auto,Auto">
+                
+                <!-- 房间胶囊横向滚动条 -->
+                <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <ListBox Classes="roomTabs"
+                             ItemsSource="{Binding Rooms}"
+                             SelectedItem="{Binding SelectedRoom, Mode=TwoWay}">
+                        <ListBox.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ListBox.ItemsPanel>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RoomCategoryItem">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <TextBlock Text="{Binding Name}" 
+                                               FontSize="13" 
+                                               FontWeight="SemiBold" 
+                                               VerticalAlignment="Center"/>
+                                    <Border Background="{DynamicResource SystemBaseLowColor}" 
+                                            CornerRadius="10" 
+                                            Padding="6,1" 
+                                            VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding DeviceCount}" 
+                                                   FontSize="10" 
+                                                   Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                                    </Border>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </ScrollViewer>
+
+                <!-- 小爱语音文字指令栏（紧凑悬浮在房间栏下方） -->
+                <Border Grid.Row="1" Margin="0,10,0,0">
+                    <ctrl:XiaoAiBarControl DataContext="{Binding XiaoAiVm}"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- 4. 主设备瀑布流自适应卡片展示区 -->
+        <ScrollViewer Grid.Row="3" Padding="18,14">
+            <ItemsControl ItemsSource="{Binding FilteredDevices}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:DeviceCardViewModel">
+                        <ctrl:DeviceCardView/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+    </Grid>
+</UserControl>

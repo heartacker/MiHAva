@@ -1,0 +1,239 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MiHAva.UI.ViewModels"
+             xmlns:spec="using:MiHAva.UI.ViewModels.Spec"
+             xmlns:ctrl="using:MiHAva.UI.Controls"
+             x:Class="MiHAva.UI.Views.DeviceDetailView"
+             x:DataType="vm:DeviceDetailViewModel">
+
+    <UserControl.Styles>
+        <!-- 模式分段选择卡片按钮 -->
+        <Style Selector="Button.modePill">
+            <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource SystemBaseHighColor}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}" />
+            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="Padding" Value="16,10" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.2" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.modePill:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.03)" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto,Auto,Auto,*">
+        
+        <!-- 1. 顶部导航与操作头栏 -->
+        <Border Grid.Row="0"
+                Padding="24,18"
+                Background="{DynamicResource SystemChromeMediumColor}"
+                BorderBrush="{DynamicResource SystemBaseLowColor}"
+                BorderThickness="0,0,0,1">
+            <Grid ColumnDefinitions="*,Auto">
+                
+                <!-- 设备基本属性 -->
+                <StackPanel Grid.Column="0" Spacing="4">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding DeviceName}" 
+                                   FontSize="20" 
+                                   FontWeight="Bold"/>
+                        <Border Background="{DynamicResource SystemBaseLowColor}" 
+                                CornerRadius="4" 
+                                Padding="8,2"
+                                VerticalAlignment="Center">
+                            <TextBlock Text="{Binding RoomName}" 
+                                       FontSize="11" 
+                                       Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                        </Border>
+                    </StackPanel>
+
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <TextBlock Text="{Binding Device.Model, StringFormat='型号: {0}'}" 
+                                   FontSize="12" 
+                                   Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                        <TextBlock Text="{Binding Device.Did, StringFormat='DID: {0}'}" 
+                                   FontSize="12" 
+                                   Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- 右上角：刷新与电源大圆钮 -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
+                    <Button Content="刷新" 
+                            Command="{Binding LoadPropertiesCommand}"
+                            IsEnabled="{Binding !IsLoading}"
+                            CornerRadius="8"
+                            Padding="12,6"/>
+                    
+                    <!-- 详情主电源圆钮 -->
+                    <Button Command="{Binding TogglePowerCommand}"
+                            Width="40" Height="40" 
+                            CornerRadius="20"
+                            Padding="0"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center"
+                            Background="{Binding IsPowerOn, Converter={x:Null}, FallbackValue=#10B981}">
+                        <TextBlock Text="⏻" FontSize="18" FontWeight="Bold" Foreground="White"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 2. 核心大号数据仪表盘 (参考截图 3、5、6、7：空气质量/温度/功率数码屏) -->
+        <Border Grid.Row="1"
+                Margin="20,16,20,10"
+                Padding="24,20"
+                CornerRadius="20"
+                Background="{DynamicResource SystemChromeLowColor}"
+                BorderBrush="{DynamicResource SystemBaseLowColor}"
+                BorderThickness="1">
+            <Grid ColumnDefinitions="*,Auto">
+                
+                <!-- 左侧大号数值呈现 -->
+                <StackPanel Grid.Column="0" Spacing="6" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding HeroLabel}" 
+                               FontSize="13" 
+                               Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                    
+                    <!-- 大号数码字体与单位 -->
+                    <StackPanel Orientation="Horizontal" Spacing="4">
+                        <TextBlock Text="{Binding HeroValue}" 
+                                   FontSize="48" 
+                                   FontWeight="Bold" 
+                                   Foreground="{DynamicResource SystemAccentColor}"/>
+                        <TextBlock Text="{Binding HeroUnit}" 
+                                   FontSize="18" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="{DynamicResource SystemBaseMediumColor}" 
+                                   VerticalAlignment="Bottom" 
+                                   Margin="0,0,0,10"/>
+                    </StackPanel>
+
+                    <!-- 状态标签胶囊 -->
+                    <Border Background="#1510B981" 
+                            CornerRadius="6" 
+                            Padding="10,4" 
+                            HorizontalAlignment="Left">
+                        <TextBlock Text="{Binding HeroStatus}" 
+                                   FontSize="12" 
+                                   FontWeight="SemiBold" 
+                                   Foreground="#10B981"/>
+                    </Border>
+                </StackPanel>
+
+                <!-- 右侧装饰性环形光盘 (米家空气质量圆环) -->
+                <Border Grid.Column="1" 
+                        Width="100" Height="100" 
+                        CornerRadius="50" 
+                        BorderBrush="#10B981" 
+                        BorderThickness="6"
+                        VerticalAlignment="Center">
+                    <TextBlock Text="OK" 
+                               FontSize="18" 
+                               FontWeight="Bold" 
+                               Foreground="#10B981" 
+                               HorizontalAlignment="Center" 
+                               VerticalAlignment="Center"/>
+                </Border>
+            </Grid>
+        </Border>
+
+        <!-- 3. 常用模式横向大圆角分段选择器 (参考截图 5、6：[ 自动 ] [ 睡眠 ] [ 最爱 ] [ 强力 ]) -->
+        <Border Grid.Row="2"
+                Margin="20,0,20,10"
+                IsVisible="{Binding ModeOptions.Count}">
+            <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                <ItemsControl ItemsSource="{Binding ModeOptions}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="spec:ValueOption">
+                            <Button Classes="modePill"
+                                    Content="{Binding Description}"
+                                    Command="{Binding $parent[UserControl].((vm:DeviceDetailViewModel)DataContext).SelectModeCommand}"
+                                    CommandParameter="{Binding .}"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- 4. 主体 Spec 属性与功能控制服务组列表 -->
+        <ScrollViewer Grid.Row="3" Padding="20,6,20,20">
+            <ItemsControl ItemsSource="{Binding ServiceGroups}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SpecServiceGroupViewModel">
+                        
+                        <!-- 单个服务卡片 (如 Air Purifier, Fan, Ambient Light 等) -->
+                        <Border Margin="0,0,0,14"
+                                Padding="16"
+                                CornerRadius="16"
+                                Background="{DynamicResource SystemChromeMediumColor}"
+                                BorderBrush="{DynamicResource SystemBaseLowColor}"
+                                BorderThickness="1"
+                                BoxShadow="0 4 14 0 #10000000">
+                            <StackPanel Spacing="10">
+                                
+                                <!-- 服务标题 -->
+                                <TextBlock Text="{Binding ServiceName}" 
+                                           FontSize="15" 
+                                           FontWeight="SemiBold" 
+                                           Foreground="{DynamicResource SystemAccentColor}"/>
+
+                                <!-- 该服务下的动态属性列表 (开关、滑块、下拉选择) -->
+                                <ItemsControl ItemsSource="{Binding Properties}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <ctrl:SpecPropertyControl/>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                                <!-- 该服务下的动作 Action 按钮列表 -->
+                                <ItemsControl ItemsSource="{Binding Actions}" 
+                                              Margin="0,4,0,0">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,8,6" Spacing="6">
+                                                <Button Content="{Binding Description}" 
+                                                        Command="{Binding ExecuteCommand}"
+                                                        IsEnabled="{Binding !IsExecuting}"
+                                                        CornerRadius="8"/>
+                                                <ProgressBar Width="14" Height="14" 
+                                                             IsIndeterminate="True" 
+                                                             IsVisible="{Binding IsExecuting}"
+                                                             VerticalAlignment="Center"/>
+                                                <TextBlock Text="{Binding ResultMessage}" 
+                                                           FontSize="11" 
+                                                           VerticalAlignment="Center" 
+                                                           Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+
+                            </StackPanel>
+                        </Border>
+
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+    </Grid>
+</UserControl>

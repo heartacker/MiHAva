@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MiHAva.Browser/MiHAva.Browser.csproj" />
+    <Project Path="src/MiHAva.Desktop/MiHAva.Desktop.csproj" />
+    <Project Path="src/MiHAva.UI/MiHAva.UI.csproj" />
+    <Project Path="src/MiJia.Net.CLI/MiJia.Net.CLI.csproj" />
+    <Project Path="src/MiJia.Net/MiJia.Net.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MiJia.Net.Tests/MiJia.Net.Tests.csproj" />
+  </Folder>
+</Solution>
