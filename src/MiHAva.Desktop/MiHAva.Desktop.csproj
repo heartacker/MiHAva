@@ -22,6 +22,7 @@
     <PackageReference Include="Avalonia.Desktop" Version="12.1.4" />
     <PackageReference Include="AtomUI.Desktop.Controls" Version="6.2.8" />
     <PackageReference Include="AtomUI.Desktop.Controls.Extras" Version="6.2.8" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.4" />
   </ItemGroup>
 
   <ItemGroup>

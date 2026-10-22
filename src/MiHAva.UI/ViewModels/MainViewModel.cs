@@ -15,12 +15,19 @@ using MiJia.Net.State;
 
 namespace MiHAva.UI.ViewModels;
 
-public sealed class RoomCategoryItem
+public sealed partial class RoomCategoryItem : ObservableObject
 {
     public string Id { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
-    public int DeviceCount { get; set; }
-    public int ActiveCount { get; set; }
+
+    [ObservableProperty]
+    private int _deviceCount;
+
+    [ObservableProperty]
+    private int _activeCount;
+
+    [ObservableProperty]
+    private bool _isSelected;
 
     public override string ToString() => $"{Name} ({DeviceCount})";
 }
@@ -123,6 +130,16 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     public void SwitchToRoom(RoomCategoryItem room)
     {
         SelectedRoom = room;
+    }
+
+    partial void OnSelectedRoomChanged(RoomCategoryItem? value)
+    {
+        foreach (var r in Rooms)
+        {
+            r.IsSelected = (value != null && r.Id == value.Id);
+        }
+        ApplyFilter();
+        UpdateCurrentTabInfo();
     }
 
     /// <summary>
@@ -432,7 +449,9 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             Rooms.Add(r);
         }
-        SelectedRoom = Rooms.FirstOrDefault();
+        var first = Rooms.FirstOrDefault();
+        if (first != null) first.IsSelected = true;
+        SelectedRoom = first;
 
         XiaoAiVm.RefreshSpeakers(currentHomeDevices);
 
@@ -471,11 +490,6 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     }
 
     partial void OnSearchKeywordChanged(string value) => ApplyFilter();
-    partial void OnSelectedRoomChanged(RoomCategoryItem? value)
-    {
-        ApplyFilter();
-        UpdateCurrentTabInfo();
-    }
 
     private void ApplyFilter()
     {

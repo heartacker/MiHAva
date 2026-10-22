@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Themes.Fluent;
 using MiHAva.UI.ViewModels;
 using MiHAva.UI.Views;
 using MiJia.Net.Auth;
@@ -24,6 +25,12 @@ public partial class MiHAvaApplication : Application
     public MiHAvaApplication()
     {
         Name = "MiHAva - 米家跨平台客户端";
+    }
+
+    public override void Initialize()
+    {
+        Styles.Add(new FluentTheme());
+        base.Initialize();
     }
 
     /// <summary>
