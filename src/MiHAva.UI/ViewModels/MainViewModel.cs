@@ -290,20 +290,46 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private string _currentThemeIcon = "🌙";
 
     [RelayCommand]
-    public void ToggleTheme()
+    public async Task ToggleThemeAsync()
     {
         if (Avalonia.Application.Current != null)
         {
-            var currentVariant = Avalonia.Application.Current.ActualThemeVariant;
-            if (currentVariant == Avalonia.Styling.ThemeVariant.Dark)
+            var isDark = false;
+            var themeManager = AtomUI.ApplicationExtensions.GetThemeManager(Avalonia.Application.Current);
+            if (themeManager != null)
             {
-                Avalonia.Application.Current.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Light;
-                CurrentThemeIcon = "🌙";
+                var currentTheme = themeManager.CurrentTheme;
+                isDark = currentTheme?.Appearance == AtomUI.Theme.ThemeAppearance.Dark;
+                var nextDark = !isDark;
+
+                var algorithms = nextDark 
+                    ? new[] { AtomUI.Theme.Algorithms.ThemeAlgorithm.Default, AtomUI.Theme.Algorithms.ThemeAlgorithm.Dark }
+                    : new[] { AtomUI.Theme.Algorithms.ThemeAlgorithm.Default };
+
+                var config = new AtomUI.Theme.Configuration.ThemeConfigBuilder()
+                    .WithAlgorithms(algorithms)
+                    .Build();
+
+                await themeManager.ApplyThemeAsync(new AtomUI.Theme.ThemeRequest(
+                    AtomUI.Theme.IThemeManager.DEFAULT_THEME_ID,
+                    config,
+                    AtomUI.Theme.ThemeTransitionReason.UserRequest));
+
+                CurrentThemeIcon = nextDark ? "☀️" : "🌙";
             }
             else
             {
-                Avalonia.Application.Current.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
-                CurrentThemeIcon = "☀️";
+                var currentVariant = Avalonia.Application.Current.ActualThemeVariant;
+                if (currentVariant == Avalonia.Styling.ThemeVariant.Dark)
+                {
+                    Avalonia.Application.Current.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Light;
+                    CurrentThemeIcon = "🌙";
+                }
+                else
+                {
+                    Avalonia.Application.Current.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
+                    CurrentThemeIcon = "☀️";
+                }
             }
         }
     }
