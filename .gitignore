@@ -4,6 +4,7 @@
 [Ll]og/
 [Ll]ogs/
 publish/
+artifacts/
 
 ## Visual Studio / Rider / VSCode
 .vs/
@@ -19,10 +20,8 @@ publish/
 Thumbs.db
 ehthumbs.db
 
-## NuGet & Temp
+## NuGet & Package outputs
 *.nupkg
 *.snupkg
 *.tmp
 .tmp/
-__pycache__/
-*.pyc
