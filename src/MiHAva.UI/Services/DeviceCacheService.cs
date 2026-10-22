@@ -61,8 +61,22 @@ public static class DeviceCacheService
     }
 
     /// <summary>
-    /// 将最新拉取的家庭与设备数据异步写入本地缓存
+    /// 清除本地缓存的设备数据与家庭信息（退出登录时调用）
     /// </summary>
+    public static void ClearCache()
+    {
+        try
+        {
+            string path = GetCacheFilePath();
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+        catch
+        {
+        }
+    }
     public static async Task SaveCacheAsync(List<HomeInfo> homes, List<DeviceInfo> devices, CancellationToken cancellationToken = default)
     {
         string path = GetCacheFilePath();

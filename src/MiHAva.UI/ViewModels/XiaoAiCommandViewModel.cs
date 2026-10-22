@@ -6,6 +6,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using MiJia.Net.Cloud;
 using MiJia.Net.Models.Devices;
+using MiJia.Net.Spec;
 using MiJia.Net.XiaoAi;
 
 namespace MiHAva.UI.ViewModels;
@@ -14,6 +15,7 @@ public sealed class XiaoAiSpeakerItem
 {
     public string Did { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
+    public string Model { get; init; } = string.Empty;
     public override string ToString() => Name;
 }
 
@@ -36,10 +38,10 @@ public partial class XiaoAiCommandViewModel : ObservableObject
 
     public ObservableCollection<XiaoAiSpeakerItem> Speakers { get; } = [];
 
-    public XiaoAiCommandViewModel(IMiCloudClient client)
+    public XiaoAiCommandViewModel(IMiCloudClient client, IMiotSpecClient? specClient = null)
     {
         _client = client;
-        _xiaoAiService = new XiaoAiService(client);
+        _xiaoAiService = new XiaoAiService(client, specClient);
     }
 
     /// <summary>
@@ -61,7 +63,8 @@ public partial class XiaoAiCommandViewModel : ObservableObject
                 Speakers.Add(new XiaoAiSpeakerItem
                 {
                     Did = dev.Did,
-                    Name = string.IsNullOrWhiteSpace(dev.Name) ? dev.Model : dev.Name
+                    Name = string.IsNullOrWhiteSpace(dev.Name) ? dev.Model : dev.Name,
+                    Model = dev.Model
                 });
             }
         }
@@ -99,7 +102,8 @@ public partial class XiaoAiCommandViewModel : ObservableObject
             bool success = await _xiaoAiService.ExecuteTextDirectiveAsync(
                 SelectedSpeaker.Did,
                 cmd,
-                silent: false);
+                silent: false,
+                model: SelectedSpeaker.Model);
 
             if (success)
             {

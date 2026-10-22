@@ -1,4 +1,5 @@
 using System;
+using System.Collections.ObjectModel;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Media.Imaging;
@@ -9,6 +10,13 @@ using MiJia.Net.Auth;
 using MiJia.Net.Models.Auth;
 
 namespace MiHAva.UI.ViewModels;
+
+public sealed class SavedAccountItem
+{
+    public string UserId { get; init; } = string.Empty;
+    public string DisplayTitle => $"小米账号 (UID: {UserId})";
+    public MiAuthTokens Tokens { get; init; } = null!;
+}
 
 public partial class LoginViewModel : ObservableObject, IDisposable
 {
@@ -27,11 +35,65 @@ public partial class LoginViewModel : ObservableObject, IDisposable
     [ObservableProperty]
     private bool _isExpired = false;
 
+    [ObservableProperty]
+    private bool _hasSavedAccounts = false;
+
+    public ObservableCollection<SavedAccountItem> SavedAccounts { get; } = [];
+
     public event Action<MiAuthTokens>? LoginSucceeded;
+    public event Action? CancelRequested;
 
     public LoginViewModel(IMiAuthService authService)
     {
         _authService = authService;
+    }
+
+    /// <summary>
+    /// 加载历史已登录账号列表
+    /// </summary>
+    public async Task LoadSavedAccountsAsync()
+    {
+        try
+        {
+            var list = await _authService.GetSavedAccountsAsync();
+            SavedAccounts.Clear();
+            foreach (var a in list)
+            {
+                SavedAccounts.Add(new SavedAccountItem
+                {
+                    UserId = a.UserId,
+                    Tokens = a
+                });
+            }
+            HasSavedAccounts = SavedAccounts.Count > 0;
+        }
+        catch
+        {
+            HasSavedAccounts = false;
+        }
+    }
+
+    /// <summary>
+    /// 用户选择返回到已有已登录账号
+    /// </summary>
+    [RelayCommand]
+    public void SelectExistingAccount(SavedAccountItem account)
+    {
+        if (account?.Tokens == null) return;
+        _pollCts?.Cancel();
+        // 保存并设为当前生效账号
+        _ = _authService.SaveTokensAsync(account.Tokens);
+        LoginSucceeded?.Invoke(account.Tokens);
+    }
+
+    /// <summary>
+    /// 用户点击返回/取消按钮
+    /// </summary>
+    [RelayCommand]
+    public void Cancel()
+    {
+        _pollCts?.Cancel();
+        CancelRequested?.Invoke();
     }
 
     /// <summary>

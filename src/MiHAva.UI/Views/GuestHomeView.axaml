@@ -1,0 +1,108 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="MiHAva.UI.Views.GuestHomeView">
+
+    <Grid>
+        <!-- 底层：模糊化家庭示例工作台骨架 -->
+        <Grid RowDefinitions="Auto,Auto,*" 
+              Opacity="0.45"
+              Effect="blur(16)">
+            
+            <!-- 1. 模拟顶部导航 -->
+            <Border Grid.Row="0"
+                    Padding="24,16"
+                    Background="{DynamicResource SystemChromeMediumColor}"
+                    BorderBrush="{DynamicResource SystemBaseLowColor}"
+                    BorderThickness="0,0,0,1">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <StackPanel Grid.Column="0" Spacing="4">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="我的温馨家" FontSize="20" FontWeight="ExtraBold"/>
+                            <TextBlock Text="▾" FontSize="12" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Text="66 台设备 · 9 台运行中 · 室内舒适 24°C" FontSize="11" Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                    </StackPanel>
+
+                    <Border Grid.Column="1" 
+                            Height="32" MaxWidth="240" 
+                            CornerRadius="16" 
+                            Background="{DynamicResource SystemChromeLowColor}"
+                            Margin="16,0"/>
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+                        <Border Width="32" Height="32" CornerRadius="8" Background="{DynamicResource SystemChromeLowColor}"/>
+                        <Border Width="68" Height="32" CornerRadius="8" Background="{DynamicResource SystemChromeLowColor}"/>
+                        <Border Width="60" Height="32" CornerRadius="8" Background="#10B981"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- 2. 模拟场景胶囊栏 -->
+            <Border Grid.Row="1" Padding="20,10" Background="{DynamicResource SystemChromeLowColor}">
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Border Width="110" Height="38" CornerRadius="18" Background="{DynamicResource SystemChromeMediumColor}"/>
+                    <Border Width="110" Height="38" CornerRadius="18" Background="{DynamicResource SystemChromeMediumColor}"/>
+                    <Border Width="110" Height="38" CornerRadius="18" Background="{DynamicResource SystemChromeMediumColor}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- 3. 模拟设备卡片列表 -->
+            <ScrollViewer Grid.Row="2" Padding="24,16">
+                <WrapPanel Orientation="Horizontal">
+                    <Border Width="226" Height="132" Margin="6" CornerRadius="20" Background="{DynamicResource SystemChromeMediumColor}"/>
+                    <Border Width="226" Height="132" Margin="6" CornerRadius="20" Background="{DynamicResource SystemChromeMediumColor}"/>
+                    <Border Width="226" Height="132" Margin="6" CornerRadius="20" Background="{DynamicResource SystemChromeMediumColor}"/>
+                    <Border Width="226" Height="132" Margin="6" CornerRadius="20" Background="{DynamicResource SystemChromeMediumColor}"/>
+                    <Border Width="226" Height="132" Margin="6" CornerRadius="20" Background="{DynamicResource SystemChromeMediumColor}"/>
+                    <Border Width="226" Height="132" Margin="6" CornerRadius="20" Background="{DynamicResource SystemChromeMediumColor}"/>
+                </WrapPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <!-- 顶层交互蒙层：点击任意位置立即唤醒米家登录二维码 -->
+        <Button HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                Background="Transparent"
+                BorderThickness="0"
+                Cursor="Hand"
+                Click="OnPromptLoginClicked">
+            <Border HorizontalAlignment="Center" 
+                    VerticalAlignment="Center"
+                    Padding="36,28"
+                    CornerRadius="24"
+                    Background="{DynamicResource SystemChromeMediumColor}"
+                    BorderBrush="{DynamicResource SystemBaseLowColor}"
+                    BorderThickness="1"
+                    BoxShadow="0 14 36 0 #35000000">
+                <StackPanel Spacing="16" HorizontalAlignment="Center">
+                    <Border Width="64" Height="64" CornerRadius="32" Background="#1510B981" HorizontalAlignment="Center">
+                        <TextBlock Text="🏠" FontSize="32" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    
+                    <StackPanel Spacing="6" HorizontalAlignment="Center">
+                        <TextBlock Text="尚未登录米家账号" 
+                                   FontSize="20" 
+                                   FontWeight="Bold" 
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="点击任意区域或下方按钮，使用米家 APP 扫码连接您的智能家居" 
+                                   FontSize="12" 
+                                   Foreground="{DynamicResource SystemBaseMediumColor}" 
+                                   HorizontalAlignment="Center"
+                                   TextAlignment="Center"
+                                   MaxWidth="280"/>
+                    </StackPanel>
+
+                    <Border Background="#10B981" 
+                            CornerRadius="12" 
+                            Padding="20,10"
+                            HorizontalAlignment="Center">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="📱" FontSize="14" Foreground="White"/>
+                            <TextBlock Text="立即扫码登录" FontSize="13" FontWeight="Bold" Foreground="White"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </Button>
+    </Grid>
+</UserControl>

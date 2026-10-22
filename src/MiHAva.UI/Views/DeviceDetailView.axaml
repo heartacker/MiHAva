@@ -7,15 +7,15 @@
              x:DataType="vm:DeviceDetailViewModel">
 
     <UserControl.Styles>
-        <!-- 模式分段选择卡片按钮 -->
-        <Style Selector="Button.modePill">
-            <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
-            <Setter Property="Foreground" Value="{DynamicResource SystemBaseHighColor}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}" />
-            <Setter Property="CornerRadius" Value="16" />
-            <Setter Property="Padding" Value="16,10" />
-            <Setter Property="Margin" Value="0,0,8,0" />
+        <!-- 详情电源主开关大圆钮样式（开：翡翠绿，关：低饱和灰色） -->
+        <Style Selector="Button.detailPowerBtn">
+            <Setter Property="Width" Value="40" />
+            <Setter Property="Height" Value="40" />
+            <Setter Property="CornerRadius" Value="20" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="Transitions">
                 <Transitions>
                     <BrushTransition Property="Background" Duration="0:0:0.2" />
@@ -23,8 +23,34 @@
                 </Transitions>
             </Setter>
         </Style>
-        <Style Selector="Button.modePill:pointerover">
-            <Setter Property="RenderTransform" Value="scale(1.03)" />
+        <Style Selector="Button.detailPowerBtn:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.08)" />
+        </Style>
+        <!-- 开启：米家翡翠绿 -->
+        <Style Selector="Button.detailPowerBtn.powerOn">
+            <Setter Property="Background" Value="#10B981" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.detailPowerBtn.powerOn /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#10B981" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.detailPowerBtn.powerOn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#059669" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <!-- 关闭/不开：低饱和中性灰底，中性灰符号 -->
+        <Style Selector="Button.detailPowerBtn.powerOff">
+            <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource SystemBaseMediumColor}" />
+        </Style>
+        <Style Selector="Button.detailPowerBtn.powerOff /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource SystemBaseMediumColor}" />
+        </Style>
+        <Style Selector="Button.detailPowerBtn.powerOff:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SystemChromeMediumColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource SystemBaseHighColor}" />
         </Style>
     </UserControl.Styles>
 
@@ -72,15 +98,18 @@
                             CornerRadius="8"
                             Padding="12,6"/>
                     
-                    <!-- 详情主电源圆钮 -->
-                    <Button Command="{Binding TogglePowerCommand}"
-                            Width="40" Height="40" 
-                            CornerRadius="20"
-                            Padding="0"
-                            HorizontalContentAlignment="Center"
-                            VerticalContentAlignment="Center"
-                            Background="{Binding IsPowerOn, Converter={x:Null}, FallbackValue=#10B981}">
-                        <TextBlock Text="⏻" FontSize="18" FontWeight="Bold" Foreground="White"/>
+                    <!-- 详情主电源圆钮（开：绿色，关：灰色，矢量防裁切） -->
+                    <Button Classes="detailPowerBtn"
+                            Classes.powerOn="{Binding IsPowerOn}"
+                            Classes.powerOff="{Binding !IsPowerOn}"
+                            Command="{Binding TogglePowerCommand}"
+                            ToolTip.Tip="开关设备">
+                        <Viewbox Width="20" Height="20" Stretch="Uniform">
+                            <Path Data="M12 2v10M18.36 6.64A9 9 0 1 1 5.63 6.64"
+                                  Stroke="{Binding $parent[Button].Foreground}"
+                                  StrokeThickness="2.4"
+                                  StrokeLineCap="Round"/>
+                        </Viewbox>
                     </Button>
                 </StackPanel>
             </Grid>

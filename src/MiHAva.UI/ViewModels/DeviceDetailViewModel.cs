@@ -56,7 +56,7 @@ public partial class DeviceDetailViewModel : ObservableObject
     private string _heroStatus = "正常运行";
 
     [ObservableProperty]
-    private bool _isPowerOn = true;
+    private bool _isPowerOn;
 
     // 核心模式切换大分段按钮 (如：自动、睡眠、最爱、强力)
     [ObservableProperty]
@@ -76,13 +76,15 @@ public partial class DeviceDetailViewModel : ObservableObject
         MiotSpecInstance? spec,
         IMiCloudClient client,
         IDeviceJobChannel jobChannel,
-        IDeviceStateCoordinator coordinator)
+        IDeviceStateCoordinator coordinator,
+        bool initialPowerState = false)
     {
         Device = device;
         Spec = spec;
         _client = client;
         _jobChannel = jobChannel;
         _coordinator = coordinator;
+        _isPowerOn = initialPowerState;
 
         _deviceName = string.IsNullOrWhiteSpace(device.Name) ? device.Model : device.Name;
         _roomName = device.RoomName ?? "默认房间";
@@ -112,9 +114,18 @@ public partial class DeviceDetailViewModel : ObservableObject
                     if (p.Format == "bool" && p.CanWrite && _powerPropVm == null &&
                        (p.Description.Contains("Switch", StringComparison.OrdinalIgnoreCase) ||
                         p.Description.Contains("Power", StringComparison.OrdinalIgnoreCase) ||
-                        p.Description.Contains("Status", StringComparison.OrdinalIgnoreCase)))
+                        p.Description.Contains("Status", StringComparison.OrdinalIgnoreCase) ||
+                        p.Type.Contains(":property:on:")))
                     {
                         _powerPropVm = propVm;
+                        _powerPropVm.PropertyChanged += (sender, args) =>
+                        {
+                            if (args.PropertyName == nameof(SpecPropertyItemViewModel.BoolValue))
+                            {
+                                IsPowerOn = _powerPropVm.BoolValue;
+                                RefreshHeroMetrics();
+                            }
+                        };
                     }
 
                     // 识别常用模式切换 (mode)

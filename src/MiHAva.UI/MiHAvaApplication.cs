@@ -64,6 +64,8 @@ public partial class MiHAvaApplication : Application
     {
         var cloudClient = new MiCloudClient(tokens);
         var jobChannel = new DeviceJobChannel(cloudClient, Coordinator);
-        return new MainViewModel(cloudClient, SpecClient, jobChannel, Coordinator);
+        var mainVm = new MainViewModel(cloudClient, SpecClient, jobChannel, Coordinator);
+        mainVm.UserIdText = string.IsNullOrEmpty(tokens.UserId) ? "米家用户" : $"UID: {tokens.UserId}";
+        return mainVm;
     }
 }

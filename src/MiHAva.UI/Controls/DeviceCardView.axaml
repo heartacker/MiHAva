@@ -57,10 +57,26 @@
             <Setter Property="Background" Value="#10B981" />
             <Setter Property="Foreground" Value="White" />
         </Style>
-        <!-- 关机：半透灰底 -->
+        <Style Selector="Button.miPowerBtn.powerOn /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#10B981" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <Style Selector="Button.miPowerBtn.powerOn:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#059669" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+        <!-- 关机：半透灰底，中性灰文字，绝无绿色 -->
         <Style Selector="Button.miPowerBtn.powerOff">
             <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
             <Setter Property="Foreground" Value="{DynamicResource SystemBaseMediumColor}" />
+        </Style>
+        <Style Selector="Button.miPowerBtn.powerOff /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource SystemBaseMediumColor}" />
+        </Style>
+        <Style Selector="Button.miPowerBtn.powerOff:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource SystemChromeMediumColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource SystemBaseHighColor}" />
         </Style>
     </UserControl.Styles>
 
@@ -80,15 +96,20 @@
             <!-- 顶栏：左上品类专属圆形底座图标 + 右侧房间胶囊与米家经典电源开关 -->
             <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
                 
-                <!-- 品类圆形底座 -->
+                <!-- 品类圆形底座（增加防裁切弹性视口） -->
                 <Border Grid.Column="0" 
-                        Width="38" Height="38" 
-                        CornerRadius="19"
+                        Width="40" Height="40" 
+                        CornerRadius="20"
+                        ClipToBounds="False"
                         Background="{DynamicResource SystemChromeLowColor}">
-                    <TextBlock Text="{Binding CategoryIcon}" 
-                               FontSize="18" 
-                               HorizontalAlignment="Center" 
-                               VerticalAlignment="Center"/>
+                    <Viewbox Width="22" Height="22" 
+                             HorizontalAlignment="Center" 
+                             VerticalAlignment="Center"
+                             Stretch="Uniform">
+                        <TextBlock Text="{Binding CategoryIcon}" 
+                                   HorizontalAlignment="Center" 
+                                   VerticalAlignment="Center"/>
+                    </Viewbox>
                 </Border>
 
                 <!-- 房间微标签 -->
@@ -104,7 +125,7 @@
                                Foreground="{DynamicResource SystemBaseMediumColor}"/>
                 </Border>
 
-                <!-- 米家经典圆形电源开关 -->
+                <!-- 米家经典圆形电源开关（矢量 Path 绘制，杜绝字符字体切边） -->
                 <Button Grid.Column="2"
                         Classes="miPowerBtn"
                         Classes.powerOn="{Binding IsSwitchOn}"
@@ -113,11 +134,12 @@
                         IsEnabled="{Binding IsOnline}"
                         Command="{Binding ToggleSwitchCommand}"
                         ToolTip.Tip="开关设备">
-                    <TextBlock Text="⏻" 
-                               FontSize="15" 
-                               FontWeight="Bold" 
-                               HorizontalAlignment="Center" 
-                               VerticalAlignment="Center"/>
+                    <Viewbox Width="17" Height="17" Stretch="Uniform">
+                        <Path Data="M12 2v10M18.36 6.64A9 9 0 1 1 5.63 6.64"
+                              Stroke="{Binding $parent[Button].Foreground}"
+                              StrokeThickness="2.4"
+                              StrokeLineCap="Round"/>
+                    </Viewbox>
                 </Button>
             </Grid>
 

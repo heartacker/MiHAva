@@ -265,8 +265,25 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
+    [ObservableProperty]
+    private string _userIdText = "未登录";
+
     public event Action<DeviceDetailViewModel>? OpenDeviceDetailRequested;
     public event Action? ToggleDesktopBoardRequested;
+    public event Action? LogoutRequested;
+    public event Action? SwitchAccountRequested;
+
+    [RelayCommand]
+    public void Logout()
+    {
+        LogoutRequested?.Invoke();
+    }
+
+    [RelayCommand]
+    public void SwitchAccount()
+    {
+        SwitchAccountRequested?.Invoke();
+    }
 
     [RelayCommand]
     public void ToggleDesktopBoard()
@@ -284,7 +301,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _specClient = specClient;
         _jobChannel = jobChannel;
         _coordinator = coordinator;
-        XiaoAiVm = new XiaoAiCommandViewModel(client);
+        XiaoAiVm = new XiaoAiCommandViewModel(client, specClient);
     }
 
     [ObservableProperty]
@@ -639,7 +656,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             card.SpecInstance,
             _client,
             _jobChannel,
-            _coordinator);
+            _coordinator,
+            card.IsSwitchOn);
 
         OpenDeviceDetailRequested?.Invoke(detailVm);
     }

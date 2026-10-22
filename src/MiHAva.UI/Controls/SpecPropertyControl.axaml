@@ -12,9 +12,9 @@
         <conv:SpecKindToBooleanConverter x:Key="IsReadOnlyConv" TargetKind="ReadOnlyText"/>
     </UserControl.Resources>
 
-    <Border Padding="14,10"
+    <Border Padding="16,12"
             Margin="0,4"
-            CornerRadius="8"
+            CornerRadius="10"
             Background="{DynamicResource SystemChromeLowColor}"
             BorderBrush="{DynamicResource SystemBaseLowColor}"
             BorderThickness="1">
@@ -30,15 +30,15 @@
                            Foreground="{DynamicResource SystemBaseMediumColor}"/>
             </StackPanel>
 
-            <!-- 右侧：控件动态分发区 -->
-            <Grid Grid.Column="1" VerticalAlignment="Center">
+            <!-- 右侧：控件动态分发区（预留充足边距，防止控件被截断） -->
+            <Grid Grid.Column="1" VerticalAlignment="Center" Margin="8,0,0,0">
                 
                 <!-- 1. 布尔开关 ToggleSwitch -->
                 <ToggleSwitch IsVisible="{Binding Kind, Converter={StaticResource IsBoolConv}}"
                               IsChecked="{Binding BoolValue, Mode=TwoWay}"
                               IsEnabled="{Binding CanWrite}"
                               OnContent="" OffContent=""
-                              Margin="0,-6,0,-6"/>
+                              Margin="0,0,4,0"/>
 
                 <!-- 2. 滑块 Slider -->
                 <StackPanel Orientation="Horizontal" Spacing="10"

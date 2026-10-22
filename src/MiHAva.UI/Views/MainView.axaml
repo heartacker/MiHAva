@@ -188,7 +188,7 @@
                              HorizontalAlignment="Stretch"
                              VerticalAlignment="Center"/>
 
-                    <!-- 右侧：功能按钮群 (主题模式 / 挂件 / 刷新) -->
+                    <!-- 右侧：功能按钮群 (主题模式 / 挂件 / 刷新 / 账号头像中心) -->
                     <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                         <!-- 深色 / 浅色模式切换 -->
                         <Button Content="{Binding CurrentThemeIcon}" 
@@ -211,6 +211,70 @@
                                 Foreground="White"
                                 FontWeight="SemiBold"
                                 FontSize="12"/>
+
+                        <!-- 账号信息与退出登录 / 切换账号菜单 -->
+                        <Button Padding="8,5"
+                                CornerRadius="10"
+                                Background="{DynamicResource SystemChromeLowColor}"
+                                BorderBrush="{DynamicResource SystemBaseLowColor}"
+                                BorderThickness="1"
+                                Cursor="Hand">
+                            <Button.Flyout>
+                                <Flyout Placement="BottomEdgeAlignedRight">
+                                    <Border Width="240" Padding="14" Background="{DynamicResource SystemChromeMediumColor}">
+                                        <StackPanel Spacing="12">
+                                            <!-- 用户基础信息 -->
+                                            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                                <Border Width="36" Height="36" CornerRadius="18" Background="#10B981">
+                                                    <TextBlock Text="👤" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <StackPanel VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding UserIdText}" FontSize="13" FontWeight="Bold"/>
+                                                    <TextBlock Text="小米云端已连接" FontSize="11" Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                                                </StackPanel>
+                                            </StackPanel>
+
+                                            <Separator Height="1" Background="{DynamicResource SystemBaseLowColor}"/>
+
+                                            <!-- 切换账号 / 登录新账号 -->
+                                            <Button HorizontalAlignment="Stretch"
+                                                    HorizontalContentAlignment="Left"
+                                                    Padding="10,8"
+                                                    CornerRadius="8"
+                                                    Background="{DynamicResource SystemChromeLowColor}"
+                                                    Command="{Binding SwitchAccountCommand}"
+                                                    Cursor="Hand">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="🔄" FontSize="14"/>
+                                                    <TextBlock Text="切换账号 / 登录新账号" FontSize="12" FontWeight="Medium"/>
+                                                </StackPanel>
+                                            </Button>
+
+                                            <!-- 退出登录 -->
+                                            <Button HorizontalAlignment="Stretch"
+                                                    HorizontalContentAlignment="Left"
+                                                    Padding="10,8"
+                                                    CornerRadius="8"
+                                                    Background="#15EF4444"
+                                                    Foreground="#EF4444"
+                                                    Command="{Binding LogoutCommand}"
+                                                    Cursor="Hand">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="🚪" FontSize="14"/>
+                                                    <TextBlock Text="退出当前登录" FontSize="12" FontWeight="SemiBold"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                    </Border>
+                                </Flyout>
+                            </Button.Flyout>
+
+                            <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                                <TextBlock Text="👤" FontSize="13"/>
+                                <TextBlock Text="账号" FontSize="12" FontWeight="SemiBold"/>
+                                <TextBlock Text="▾" FontSize="10" Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </Grid>
             </Border>
