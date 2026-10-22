@@ -50,6 +50,30 @@
             <Setter Property="RenderTransform" Value="scale(1.03)" />
             <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
         </Style>
+
+        <!-- 房间栏左右滚动轻量导航按钮 -->
+        <Style Selector="Button.scrollNavBtn">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Opacity" Value="0.75" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.15" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.scrollNavBtn:pointerover">
+            <Setter Property="Opacity" Value="1.0" />
+            <Setter Property="RenderTransform" Value="scale(1.1)" />
+        </Style>
     </UserControl.Styles>
 
     <Grid>
@@ -66,7 +90,8 @@
                     
                     <!-- 左侧：家庭名称下拉展开（米家经典原生 Dropdown Flyout） -->
                     <StackPanel Grid.Column="0" Spacing="3" VerticalAlignment="Center">
-                        <Button Background="Transparent" 
+                        <Button x:Name="HomeSwitcherButton"
+                                Background="Transparent" 
                                 Padding="0" 
                                 BorderThickness="0"
                                 Cursor="Hand">
@@ -93,6 +118,7 @@
                                                                 Background="{DynamicResource SystemChromeLowColor}"
                                                                 BorderBrush="{DynamicResource SystemBaseLowColor}"
                                                                 BorderThickness="1"
+                                                                Click="OnHomeItemClicked"
                                                                 Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).SelectHomeCommand}"
                                                                 CommandParameter="{Binding}"
                                                                 Cursor="Hand">
@@ -242,46 +268,71 @@
                 </ScrollViewer>
             </Border>
 
-            <!-- 3. 横向滚动吸顶房间胶囊 Tab 栏（每个 Tab 为独立 Button，100% 响应点击切换房间） -->
+            <!-- 3. 横向无滚动条房间胶囊 Tab 栏（带左右微调导航按钮 + 支持鼠标拖拽与触控） -->
             <Border Grid.Row="2" 
-                    Padding="20,10" 
+                    Padding="14,10" 
                     BorderBrush="{DynamicResource SystemBaseLowColor}" 
                     BorderThickness="0,0,0,1">
                 <Grid RowDefinitions="Auto,Auto">
                     
-                    <!-- 房间胶囊按钮水平流动列表 -->
-                    <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                        <ItemsControl ItemsSource="{Binding Rooms}">
-                            <ItemsControl.ItemsPanel>
-                                <ItemsPanelTemplate>
-                                    <StackPanel Orientation="Horizontal"/>
-                                </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate x:DataType="vm:RoomCategoryItem">
-                                    <Button Classes="roomPill"
-                                            Classes.selected="{Binding IsSelected}"
-                                            Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).SwitchToRoomCommand}"
-                                            CommandParameter="{Binding}">
-                                        <StackPanel Orientation="Horizontal" Spacing="6">
-                                            <TextBlock Text="{Binding Name}" 
-                                                       FontSize="13" 
-                                                       FontWeight="SemiBold" 
-                                                       VerticalAlignment="Center"/>
-                                            <Border Background="{DynamicResource SystemBaseLowColor}" 
-                                                    CornerRadius="10" 
-                                                    Padding="6,1" 
-                                                    VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding DeviceCount}" 
-                                                           FontSize="10" 
-                                                           Foreground="{DynamicResource SystemBaseMediumColor}"/>
-                                            </Border>
-                                        </StackPanel>
-                                    </Button>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                    <!-- 房间列表与左右微调按钮行 -->
+                    <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
+                        
+                        <!-- 左移按钮 -->
+                        <Button Grid.Column="0"
+                                Classes="scrollNavBtn"
+                                Click="OnScrollLeftClicked"
+                                ToolTip.Tip="向左滚动房间列表"
+                                Margin="0,0,8,0">
+                            <TextBlock Text="‹" FontSize="18" FontWeight="Bold" Margin="0,-2,0,0"/>
+                        </Button>
+
+                        <!-- 房间胶囊按钮水平流动列表（隐藏滚动条，支持鼠标拖拽与触摸手势） -->
+                        <ScrollViewer Grid.Column="1"
+                                      x:Name="RoomsScrollViewer"
+                                      HorizontalScrollBarVisibility="Hidden" 
+                                      VerticalScrollBarVisibility="Disabled">
+                            <ItemsControl ItemsSource="{Binding Rooms}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <StackPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:RoomCategoryItem">
+                                        <Button Classes="roomPill"
+                                                Classes.selected="{Binding IsSelected}"
+                                                Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).SwitchToRoomCommand}"
+                                                CommandParameter="{Binding}">
+                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                <TextBlock Text="{Binding Name}" 
+                                                           FontSize="13" 
+                                                           FontWeight="SemiBold" 
+                                                           VerticalAlignment="Center"/>
+                                                <Border Background="{DynamicResource SystemBaseLowColor}" 
+                                                        CornerRadius="10" 
+                                                        Padding="6,1" 
+                                                        VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding DeviceCount}" 
+                                                               FontSize="10" 
+                                                               Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                                                </Border>
+                                            </StackPanel>
+                                        </Button>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <!-- 右移按钮 -->
+                        <Button Grid.Column="2"
+                                Classes="scrollNavBtn"
+                                Click="OnScrollRightClicked"
+                                ToolTip.Tip="向右滚动房间列表"
+                                Margin="8,0,0,0">
+                            <TextBlock Text="›" FontSize="18" FontWeight="Bold" Margin="0,-2,0,0"/>
+                        </Button>
+                    </Grid>
 
                     <!-- 小爱语音文字指令栏 -->
                     <Border Grid.Row="1" Margin="0,8,0,0">
