@@ -37,7 +37,7 @@
             <Setter Property="Foreground" Value="White" />
         </Style>
 
-        <!-- 常用场景胶囊按钮样式（高质感拟物扁平，还原截图上方场景条） -->
+        <!-- 常用场景胶囊按钮样式 -->
         <Style Selector="Button.scenePill">
             <Setter Property="Background" Value="{DynamicResource SystemChromeMediumColor}" />
             <Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}" />
@@ -56,15 +56,6 @@
         <Style Selector="Button.scenePill:pointerover">
             <Setter Property="RenderTransform" Value="scale(1.03)" />
             <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
-        </Style>
-
-        <!-- 顶栏微胶囊小徽标 -->
-        <Style Selector="Border.badgePill">
-            <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
-            <Setter Property="CornerRadius" Value="14" />
-            <Setter Property="Padding" Value="10,5" />
-            <Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}" />
-            <Setter Property="BorderThickness" Value="1" />
         </Style>
     </UserControl.Styles>
 
@@ -207,7 +198,7 @@
                 </ScrollViewer>
             </Border>
 
-            <!-- 3. 横向滚动吸顶房间胶囊 Tab 栏 (参考截图：全部 | 入户 | 客厅 | 餐厅 | 卧室...) -->
+            <!-- 3. 横向滚动吸顶房间胶囊 Tab 栏 (点击不同 Tab 切换至对应房间) -->
             <Border Grid.Row="2" 
                     Padding="26,12" 
                     BorderBrush="{DynamicResource SystemBaseLowColor}" 
@@ -245,32 +236,111 @@
                         </ListBox>
                     </ScrollViewer>
 
-                    <!-- 小爱语音文字指令栏（紧凑悬浮在房间栏下方） -->
+                    <!-- 小爱语音文字指令栏（悬浮在房间栏下方） -->
                     <Border Grid.Row="1" Margin="0,10,0,0">
                         <ctrl:XiaoAiBarControl DataContext="{Binding XiaoAiVm}"/>
                     </Border>
                 </Grid>
             </Border>
 
-            <!-- 4. 主设备自适应卡片展示区（参考截图：经典圆角大间距卡片） -->
-            <ScrollViewer Grid.Row="3" Padding="20,16">
-                <ItemsControl ItemsSource="{Binding FilteredDevices}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Horizontal"/>
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:DeviceCardViewModel">
-                            <ctrl:DeviceCardView/>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+            <!-- 4. 主内容展示区：不同 Tab 显示不同房间对应的设备 -->
+            <ScrollViewer Grid.Row="3" Padding="24,16">
+                <StackPanel Spacing="16">
+                    
+                    <!-- 当前所选 Tab / 房间的标题与状态横条 -->
+                    <Border Background="{DynamicResource SystemChromeLowColor}"
+                            CornerRadius="16"
+                            Padding="20,12"
+                            BorderBrush="{DynamicResource SystemBaseLowColor}"
+                            BorderThickness="1">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Grid.Column="0" Spacing="2">
+                                <TextBlock Text="{Binding CurrentTabTitle}" 
+                                           FontSize="18" 
+                                           FontWeight="Bold"/>
+                                <TextBlock Text="{Binding CurrentTabSubtitle}" 
+                                           FontSize="12" 
+                                           Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                            </StackPanel>
+
+                            <!-- 当前房间的独立控制快捷（非全部视图时展示） -->
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <Border Background="{DynamicResource SystemBaseLowColor}" 
+                                        CornerRadius="12" 
+                                        Padding="10,4"
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding FilteredDevices.Count, StringFormat='共 {0} 件设备'}" 
+                                               FontSize="11" 
+                                               FontWeight="SemiBold"
+                                               Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                                </Border>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <!-- A. 选定单个房间 Tab 时（或搜索状态下）：直接平铺该房间内的所有设备 -->
+                    <ItemsControl ItemsSource="{Binding FilteredDevices}"
+                                  IsVisible="{Binding !IsAllRoomSelected}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel Orientation="Horizontal"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:DeviceCardViewModel">
+                                <ctrl:DeviceCardView/>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- B. 选定“全部” Tab 时：按房间分段分组呈现（入户 / 客厅 / 厨房 / 卧室 等分块展示，各房间一目了然） -->
+                    <ItemsControl ItemsSource="{Binding RoomSections}"
+                                  IsVisible="{Binding IsAllRoomSelected}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:RoomSectionGroup">
+                                <StackPanel Margin="0,0,0,20" Spacing="10">
+                                    <!-- 房间分段标题栏 -->
+                                    <Grid ColumnDefinitions="Auto,*,Auto" Margin="4,0">
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding RoomName}" 
+                                                       FontSize="16" 
+                                                       FontWeight="Bold"/>
+                                            <Border Background="{DynamicResource SystemBaseLowColor}" 
+                                                    CornerRadius="10" 
+                                                    Padding="8,2" 
+                                                    VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding SummaryText}" 
+                                                           FontSize="11" 
+                                                           Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <Separator Grid.Column="1" Margin="16,0" Opacity="0.3"/>
+                                    </Grid>
+
+                                    <!-- 该房间内的设备卡片流 -->
+                                    <ItemsControl ItemsSource="{Binding Devices}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:DeviceCardViewModel">
+                                                <ctrl:DeviceCardView/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                </StackPanel>
             </ScrollViewer>
 
         </Grid>
 
-        <!-- 5. 仿米家左侧滑出/下拉家庭切换面板 (参考截图 134009) -->
+        <!-- 5. 仿米家左侧滑出/下拉家庭切换面板 -->
         <Border Background="#80000000"
                 IsVisible="{Binding IsHomeSwitcherOpen}"
                 PointerPressed="OnBackdropPointerPressed">

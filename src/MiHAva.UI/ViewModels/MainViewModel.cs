@@ -20,6 +20,7 @@ public sealed class RoomCategoryItem
     public string Id { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public int DeviceCount { get; set; }
+    public int ActiveCount { get; set; }
 
     public override string ToString() => $"{Name} ({DeviceCount})";
 }
@@ -29,9 +30,22 @@ public sealed class HomeCategoryItem
     public string Id { get; init; } = string.Empty;
     public string Name { get; init; } = string.Empty;
     public int RoomCount { get; init; }
+    public int DeviceCount { get; set; }
     public HomeInfo RawHome { get; init; } = default!;
 
     public override string ToString() => Name;
+}
+
+/// <summary>
+/// 按房间分组的设备区块（米家经典“全部”视图分段展示）
+/// </summary>
+public sealed class RoomSectionGroup
+{
+    public string RoomName { get; init; } = string.Empty;
+    public int DeviceCount => Devices.Count;
+    public int ActiveCount => Devices.Count(d => d.IsOnline && d.IsSwitchOn);
+    public string SummaryText => $"{DeviceCount} 台设备 · {ActiveCount} 台开启";
+    public ObservableCollection<DeviceCardViewModel> Devices { get; } = [];
 }
 
 public partial class MainViewModel : ObservableObject, IAsyncDisposable
@@ -73,11 +87,21 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private string _summaryText = "加载中...";
 
     [ObservableProperty]
+    private string _currentTabTitle = "全部设备";
+
+    [ObservableProperty]
+    private string _currentTabSubtitle = "全屋设备一览";
+
+    [ObservableProperty]
+    private bool _isAllRoomSelected = true;
+
+    [ObservableProperty]
     private bool _isHomeSwitcherOpen;
 
     public ObservableCollection<HomeCategoryItem> AvailableHomes { get; } = [];
     public ObservableCollection<RoomCategoryItem> Rooms { get; } = [];
     public ObservableCollection<DeviceCardViewModel> FilteredDevices { get; } = [];
+    public ObservableCollection<RoomSectionGroup> RoomSections { get; } = [];
     public XiaoAiCommandViewModel XiaoAiVm { get; }
 
     [RelayCommand]
@@ -93,6 +117,12 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         CurrentHomeName = home.Name;
         IsHomeSwitcherOpen = false;
         RebuildRoomsForCurrentHome();
+    }
+
+    [RelayCommand]
+    public void SwitchToRoom(RoomCategoryItem room)
+    {
+        SelectedRoom = room;
     }
 
     /// <summary>
@@ -179,6 +209,42 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         TotalDeviceCount = _allDeviceCards.Count;
         ActiveDeviceCount = _allDeviceCards.Count(c => c.IsOnline && c.IsSwitchOn);
         SummaryText = $"{TotalDeviceCount} 台设备 · {ActiveDeviceCount} 台运行中";
+
+        // 更新每个 Room 的 ActiveCount
+        foreach (var r in Rooms)
+        {
+            if (r.Id == "__ALL__")
+            {
+                r.DeviceCount = TotalDeviceCount;
+                r.ActiveCount = ActiveDeviceCount;
+            }
+            else
+            {
+                var roomCards = _allDeviceCards.Where(c => c.RoomName == r.Name).ToList();
+                r.DeviceCount = roomCards.Count;
+                r.ActiveCount = roomCards.Count(c => c.IsOnline && c.IsSwitchOn);
+            }
+        }
+
+        UpdateCurrentTabInfo();
+    }
+
+    private void UpdateCurrentTabInfo()
+    {
+        if (SelectedRoom == null || SelectedRoom.Id == "__ALL__")
+        {
+            IsAllRoomSelected = true;
+            CurrentTabTitle = "全部设备";
+            CurrentTabSubtitle = $"全屋 {TotalDeviceCount} 台智能设备 · {ActiveDeviceCount} 台正在运行";
+        }
+        else
+        {
+            IsAllRoomSelected = false;
+            CurrentTabTitle = SelectedRoom.Name;
+            var inRoom = _allDeviceCards.Where(c => c.RoomName == SelectedRoom.Name).ToList();
+            int inRoomActive = inRoom.Count(c => c.IsOnline && c.IsSwitchOn);
+            CurrentTabSubtitle = $"{SelectedRoom.Name} 专属空间 · 共 {inRoom.Count} 台设备 · {inRoomActive} 台已开启";
+        }
     }
 
     public event Action<DeviceDetailViewModel>? OpenDeviceDetailRequested;
@@ -269,11 +335,25 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         AvailableHomes.Clear();
         foreach (var h in homes)
         {
+            // 统计该家庭匹配到的设备数量
+            var homeDids = new HashSet<string>();
+            foreach (var r in h.Rooms)
+            {
+                foreach (var rdid in r.Dids)
+                {
+                    homeDids.Add(rdid);
+                    int dotIdx = rdid.IndexOf('.');
+                    if (dotIdx > 0) homeDids.Add(rdid[..dotIdx]);
+                }
+            }
+            int count = rawDevices.Count(d => homeDids.Contains(d.Did));
+
             AvailableHomes.Add(new HomeCategoryItem
             {
                 Id = h.Id,
                 Name = h.Name,
                 RoomCount = h.Rooms.Count,
+                DeviceCount = count,
                 RawHome = h
             });
         }
@@ -306,11 +386,21 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         {
             foreach (var r in rawHome.Rooms)
             {
-                foreach (var did in r.Dids)
+                foreach (var rdid in r.Dids)
                 {
-                    didToRoomName[did] = r.Name;
-                    homeDids.Add(did);
+                    didToRoomName[rdid] = r.Name;
+                    homeDids.Add(rdid);
+
+                    // 兼容多键开关分拆 did (例如 1122187271.s2 -> 主设备 1122187271)
+                    int dotIdx = rdid.IndexOf('.');
+                    if (dotIdx > 0)
+                    {
+                        string baseDid = rdid[..dotIdx];
+                        didToRoomName[baseDid] = r.Name;
+                        homeDids.Add(baseDid);
+                    }
                 }
+
                 roomCategories.Add(new RoomCategoryItem
                 {
                     Id = r.Id,
@@ -320,8 +410,21 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             }
         }
 
-        // 当前家庭下的设备集合（若当前家庭明确定义了 dids 则过滤，否则包含所有关联此家房间的设备）
+        // 筛选归属于当前家庭的设备
         var currentHomeDevices = _allRawDevices.Where(d => homeDids.Count == 0 || homeDids.Contains(d.Did)).ToList();
+        
+        // 若为主家庭，将未分配房间的穿戴设备（如手环等）也收入“全部”
+        if (SelectedHome == AvailableHomes.FirstOrDefault())
+        {
+            var unassigned = _allRawDevices.Where(d => !AvailableHomes.Skip(1).Any(other =>
+            {
+                var otherDids = other.RawHome.Rooms.SelectMany(r => r.Dids).ToHashSet();
+                return otherDids.Contains(d.Did) || otherDids.Any(x => x.StartsWith(d.Did + "."));
+            }) && !currentHomeDevices.Contains(d)).ToList();
+
+            currentHomeDevices.AddRange(unassigned);
+        }
+
         roomCategories[0].DeviceCount = currentHomeDevices.Count;
 
         Rooms.Clear();
@@ -340,6 +443,11 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             {
                 dev.RoomName = rName;
             }
+            else
+            {
+                dev.RoomName = "未分配";
+            }
+
             var card = new DeviceCardViewModel(dev, _jobChannel, _coordinator);
             card.OpenDetailRequested += OnCardOpenDetailRequested;
             _allDeviceCards.Add(card);
@@ -363,7 +471,11 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     }
 
     partial void OnSearchKeywordChanged(string value) => ApplyFilter();
-    partial void OnSelectedRoomChanged(RoomCategoryItem? value) => ApplyFilter();
+    partial void OnSelectedRoomChanged(RoomCategoryItem? value)
+    {
+        ApplyFilter();
+        UpdateCurrentTabInfo();
+    }
 
     private void ApplyFilter()
     {
@@ -383,10 +495,25 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
                 d.RoomName.Contains(kw, StringComparison.OrdinalIgnoreCase));
         }
 
+        var list = query.ToList();
+
         FilteredDevices.Clear();
-        foreach (var item in query)
+        foreach (var item in list)
         {
             FilteredDevices.Add(item);
+        }
+
+        // 重新构建分房间区块（供分组呈现）
+        RoomSections.Clear();
+        var grouped = list.GroupBy(d => d.RoomName);
+        foreach (var g in grouped)
+        {
+            var section = new RoomSectionGroup { RoomName = g.Key };
+            foreach (var card in g)
+            {
+                section.Devices.Add(card);
+            }
+            RoomSections.Add(section);
         }
     }
 
