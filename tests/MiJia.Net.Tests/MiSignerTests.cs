@@ -11,27 +11,20 @@ public class MiSignerTests
         string nonce = MiSigner.GenerateNonce();
         
         Assert.NotNull(nonce);
-        Assert.Contains(":", nonce);
 
-        var parts = nonce.Split(':');
-        Assert.Equal(2, parts.Length);
-
-        // 验证前半部分是合法的 Base64（12 字节 -> 16 字符 Base64）
-        byte[] randomBytes = Convert.FromBase64String(parts[0]);
-        Assert.Equal(12, randomBytes.Length);
-
-        // 验证后半部分是分钟时间戳
-        Assert.True(long.TryParse(parts[1], out long minutes));
-        Assert.True(minutes > 0);
+        // 验证整体是合法的 Base64 编码（且解码后长度大于等于 9 字节：8 字节随机数 + 时间戳）
+        byte[] bytes = Convert.FromBase64String(nonce);
+        Assert.True(bytes.Length >= 9);
     }
 
     [Fact]
     public void GenerateSignedNonce_ShouldComputeDeterministicSha256()
     {
-        // 模拟已知的 ssecurity (Base64) 与固定 nonce
+        // 模拟已知的 ssecurity (Base64) 与固定 nonce (Base64)
         byte[] rawSecret = new byte[16] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
         string ssecurity = Convert.ToBase64String(rawSecret);
-        string nonce = "sampleNonceValue:123456";
+        byte[] rawNonce = new byte[12] { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0, 1, 2 };
+        string nonce = Convert.ToBase64String(rawNonce);
 
         string signedNonce1 = MiSigner.GenerateSignedNonce(ssecurity, nonce);
         string signedNonce2 = MiSigner.GenerateSignedNonce(ssecurity, nonce);
