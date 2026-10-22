@@ -5,32 +5,39 @@
              x:DataType="vm:DeviceCardViewModel">
 
     <UserControl.Styles>
-        <!-- 卡片主体样式 -->
+        <!-- 卡片主体样式（高度贴合米家官方圆角白底大阴影卡片） -->
         <Style Selector="Border.miCard">
             <Setter Property="Background" Value="{DynamicResource SystemChromeMediumColor}" />
             <Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="16" />
+            <Setter Property="CornerRadius" Value="20" />
             <Setter Property="Opacity" Value="1.0" />
             <Setter Property="Transitions">
                 <Transitions>
-                    <DoubleTransition Property="Opacity" Duration="0:0:0.25" />
+                    <DoubleTransition Property="Opacity" Duration="0:0:0.2" />
                     <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.15" />
+                    <BrushTransition Property="Background" Duration="0:0:0.2" />
                 </Transitions>
             </Setter>
         </Style>
         <Style Selector="Border.miCard:pointerover">
             <Setter Property="RenderTransform" Value="scale(1.02)" />
+            <Setter Property="BoxShadow" Value="0 10 24 0 #1A000000" />
         </Style>
+        <!-- 设备开机激活状态下的卡片高亮光感 -->
+        <Style Selector="Border.miCard.active">
+            <Setter Property="BorderBrush" Value="#4010B981" />
+        </Style>
+        <!-- 离线态 -->
         <Style Selector="Border.miCard.offline">
-            <Setter Property="Opacity" Value="0.55" />
+            <Setter Property="Opacity" Value="0.6" />
         </Style>
 
-        <!-- 开关按钮样式（米家经典大圆钮） -->
+        <!-- 开关按钮样式（米家经典右上角圆形电源大按键） -->
         <Style Selector="Button.miPowerBtn">
-            <Setter Property="Width" Value="38" />
-            <Setter Property="Height" Value="38" />
-            <Setter Property="CornerRadius" Value="19" />
+            <Setter Property="Width" Value="36" />
+            <Setter Property="Height" Value="36" />
+            <Setter Property="CornerRadius" Value="18" />
             <Setter Property="Padding" Value="0" />
             <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="VerticalContentAlignment" Value="Center" />
@@ -38,55 +45,60 @@
             <Setter Property="Transitions">
                 <Transitions>
                     <BrushTransition Property="Background" Duration="0:0:0.2" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1" />
                 </Transitions>
             </Setter>
         </Style>
-        <!-- 开机：米家绿高亮 -->
+        <Style Selector="Button.miPowerBtn:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.08)" />
+        </Style>
+        <!-- 开机：米家翡翠绿 -->
         <Style Selector="Button.miPowerBtn.powerOn">
             <Setter Property="Background" Value="#10B981" />
             <Setter Property="Foreground" Value="White" />
         </Style>
-        <!-- 关机：低调浅灰底色 -->
+        <!-- 关机：半透灰底 -->
         <Style Selector="Button.miPowerBtn.powerOff">
-            <Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}" />
+            <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
             <Setter Property="Foreground" Value="{DynamicResource SystemBaseMediumColor}" />
         </Style>
     </UserControl.Styles>
 
-    <!-- 卡片主体：点击空白区进入设备详情 -->
+    <!-- 卡片主体：流式排布，宽度自适应 -->
     <Border Classes="miCard"
             Classes.offline="{Binding !IsOnline}"
-            Width="220" Height="140"
+            Classes.active="{Binding IsSwitchOn}"
+            Width="226" Height="132"
             Margin="6"
-            Padding="14,12"
-            BoxShadow="0 4 16 0 #12000000"
+            Padding="16,14"
+            BoxShadow="0 4 14 0 #10000000"
             Cursor="Hand"
             PointerPressed="OnCardPointerPressed">
 
         <Grid RowDefinitions="Auto,*,Auto">
             
-            <!-- 顶栏：左上品类小图标 + 右上米家经典大圆形电源按钮 -->
+            <!-- 顶栏：左上品类专属圆形底座图标 + 右侧房间胶囊与米家经典电源开关 -->
             <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto">
                 
-                <!-- 品类圆形小底座与设备图标 -->
+                <!-- 品类圆形底座 -->
                 <Border Grid.Column="0" 
-                        Width="36" Height="36" 
-                        CornerRadius="18"
-                        Background="{DynamicResource SystemBaseLowColor}">
-                    <TextBlock Text="💡" 
-                               FontSize="16" 
+                        Width="38" Height="38" 
+                        CornerRadius="19"
+                        Background="{DynamicResource SystemChromeLowColor}">
+                    <TextBlock Text="{Binding CategoryIcon}" 
+                               FontSize="18" 
                                HorizontalAlignment="Center" 
                                VerticalAlignment="Center"/>
                 </Border>
 
-                <!-- 房间名称微标签（靠右对齐开关左侧） -->
+                <!-- 房间微标签 -->
                 <Border Grid.Column="1" 
                         HorizontalAlignment="Right" 
                         VerticalAlignment="Center"
                         Margin="0,0,10,0"
                         Background="{DynamicResource SystemChromeLowColor}" 
-                        CornerRadius="4" 
-                        Padding="6,2">
+                        CornerRadius="6" 
+                        Padding="6,3">
                     <TextBlock Text="{Binding RoomName}" 
                                FontSize="11" 
                                Foreground="{DynamicResource SystemBaseMediumColor}"/>
@@ -102,20 +114,20 @@
                         Command="{Binding ToggleSwitchCommand}"
                         ToolTip.Tip="开关设备">
                     <TextBlock Text="⏻" 
-                               FontSize="16" 
+                               FontSize="15" 
                                FontWeight="Bold" 
                                HorizontalAlignment="Center" 
                                VerticalAlignment="Center"/>
                 </Button>
             </Grid>
 
-            <!-- 中间弹性占位 -->
+            <!-- 中间弹性留白 -->
             <Panel Grid.Row="1" />
 
-            <!-- 底栏：设备名称 + 运行参数/状态文案 -->
+            <!-- 底栏：设备名称 (大字粗体) + 状态副标题（开启 / 关闭 / 离线） -->
             <Grid Grid.Row="2" RowDefinitions="Auto,Auto">
                 
-                <!-- 设备名称 (大字粗体) -->
+                <!-- 设备名称 -->
                 <TextBlock Grid.Row="0" 
                            Text="{Binding Name}" 
                            FontSize="14" 
@@ -123,13 +135,14 @@
                            TextTrimming="CharacterEllipsis"
                            ToolTip.Tip="{Binding Name}"/>
 
-                <!-- 状态副标题（如：已开启 / 离线 / 正常运行） -->
+                <!-- 状态指示 -->
                 <Grid Grid.Row="1" Margin="0,3,0,0" ColumnDefinitions="*,Auto">
                     <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
                         <!-- 在线且开启 -->
                         <TextBlock Text="已开启" 
                                    FontSize="12" 
                                    Foreground="#10B981" 
+                                   FontWeight="SemiBold"
                                    IsVisible="{Binding IsSwitchOn}"/>
                         <!-- 在线且关闭 -->
                         <TextBlock Text="已关闭" 
@@ -143,7 +156,7 @@
                                    IsVisible="{Binding !IsOnline}"/>
                     </StackPanel>
 
-                    <!-- 操作中缓冲加载 Spinner -->
+                    <!-- 操作中加载 Spinner -->
                     <ProgressBar Grid.Column="1" 
                                  Width="14" Height="14" 
                                  IsIndeterminate="True" 

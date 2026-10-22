@@ -24,6 +24,16 @@ public sealed class RoomCategoryItem
     public override string ToString() => $"{Name} ({DeviceCount})";
 }
 
+public sealed class HomeCategoryItem
+{
+    public string Id { get; init; } = string.Empty;
+    public string Name { get; init; } = string.Empty;
+    public int RoomCount { get; init; }
+    public HomeInfo RawHome { get; init; } = default!;
+
+    public override string ToString() => Name;
+}
+
 public partial class MainViewModel : ObservableObject, IAsyncDisposable
 {
     private readonly IMiCloudClient _client;
@@ -32,10 +42,17 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private readonly IDeviceStateCoordinator _coordinator;
 
     private readonly List<DeviceCardViewModel> _allDeviceCards = [];
+    private readonly List<DeviceInfo> _allRawDevices = [];
     private CancellationTokenSource? _pollLoopCts;
 
     [ObservableProperty]
+    private HomeCategoryItem? _selectedHome;
+
+    [ObservableProperty]
     private string _currentHomeName = "我的家";
+
+    [ObservableProperty]
+    private string _environmentSummary = "室内舒适 · 24°C";
 
     [ObservableProperty]
     private string _searchKeyword = string.Empty;
@@ -55,9 +72,28 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty]
     private string _summaryText = "加载中...";
 
+    [ObservableProperty]
+    private bool _isHomeSwitcherOpen;
+
+    public ObservableCollection<HomeCategoryItem> AvailableHomes { get; } = [];
     public ObservableCollection<RoomCategoryItem> Rooms { get; } = [];
     public ObservableCollection<DeviceCardViewModel> FilteredDevices { get; } = [];
     public XiaoAiCommandViewModel XiaoAiVm { get; }
+
+    [RelayCommand]
+    public void ToggleHomeSwitcher()
+    {
+        IsHomeSwitcherOpen = !IsHomeSwitcherOpen;
+    }
+
+    [RelayCommand]
+    public void SelectHome(HomeCategoryItem home)
+    {
+        SelectedHome = home;
+        CurrentHomeName = home.Name;
+        IsHomeSwitcherOpen = false;
+        RebuildRoomsForCurrentHome();
+    }
 
     /// <summary>
     /// 一键关灯快捷场景
@@ -84,7 +120,6 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     [RelayCommand]
     public async Task LeaveHomeSceneAsync()
     {
-        // 离家：关闭所有非必须设备
         var activeCards = _allDeviceCards
             .Where(c => c.IsOnline && c.HasSwitch && c.IsSwitchOn &&
                        !c.Name.Contains("路由") && !c.Name.Contains("网关") && !c.Name.Contains("摄像"))
@@ -99,7 +134,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     }
 
     /// <summary>
-    /// 回家模式快捷场景 (打开常用客厅灯与净化器等)
+    /// 回家模式快捷场景
     /// </summary>
     [RelayCommand]
     public async Task ArriveHomeSceneAsync()
@@ -118,23 +153,35 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     }
 
     /// <summary>
+    /// 全开模式快捷场景
+    /// </summary>
+    [RelayCommand]
+    public async Task TurnOnAllSceneAsync()
+    {
+        var offCards = _allDeviceCards
+            .Where(c => c.IsOnline && c.HasSwitch && !c.IsSwitchOn &&
+                       (c.Name.Contains("灯") || c.Device.Model.Contains("light")))
+            .ToList();
+
+        foreach (var card in offCards)
+        {
+            card.IsSwitchOn = true;
+            await _jobChannel.EnqueueSetPropertyAsync(card.Device.Did, card.SwitchSiid, card.SwitchPiid, true);
+        }
+        UpdateSummary();
+    }
+
+    /// <summary>
     /// 更新全屋设备统计与概览文案
     /// </summary>
     public void UpdateSummary()
     {
         TotalDeviceCount = _allDeviceCards.Count;
         ActiveDeviceCount = _allDeviceCards.Count(c => c.IsOnline && c.IsSwitchOn);
-        SummaryText = $"全屋 {TotalDeviceCount} 台设备 · {ActiveDeviceCount} 台运行中";
+        SummaryText = $"{TotalDeviceCount} 台设备 · {ActiveDeviceCount} 台运行中";
     }
 
-    /// <summary>
-    /// 请求弹出设备详情对话框
-    /// </summary>
     public event Action<DeviceDetailViewModel>? OpenDeviceDetailRequested;
-
-    /// <summary>
-    /// 请求切换桌面挂件显示
-    /// </summary>
     public event Action? ToggleDesktopBoardRequested;
 
     [RelayCommand]
@@ -159,9 +206,6 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty]
     private string _currentThemeIcon = "🌙";
 
-    /// <summary>
-    /// 切换浅色 / 深色主题
-    /// </summary>
     [RelayCommand]
     public void ToggleTheme()
     {
@@ -171,36 +215,28 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             if (currentVariant == Avalonia.Styling.ThemeVariant.Dark)
             {
                 Avalonia.Application.Current.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Light;
-                CurrentThemeIcon = "🌙"; // 提示可切到暗色
+                CurrentThemeIcon = "🌙";
             }
             else
             {
                 Avalonia.Application.Current.RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark;
-                CurrentThemeIcon = "☀️"; // 提示可切到浅色
+                CurrentThemeIcon = "☀️";
             }
         }
     }
 
-    /// <summary>
-    /// 初始化加载全部数据 (Offline-First 秒开呈现)
-    /// </summary>
     public async Task InitializeAsync()
     {
-        // 1. 优先读取本地磁盘缓存，实现 UI 0 毫秒秒开
         var cached = await DeviceCacheService.LoadCacheAsync();
         if (cached != null && cached.Devices.Count > 0)
         {
             ApplyHomeAndDeviceData(cached.Homes, cached.Devices);
         }
 
-        // 2. 静默拉取最新数据
         _ = RefreshAllAsync();
         StartBackgroundPolling();
     }
 
-    /// <summary>
-    /// 手动刷新
-    /// </summary>
     [RelayCommand]
     public async Task RefreshAllAsync()
     {
@@ -209,16 +245,10 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         try
         {
-            // 1. 获取家庭与房间
             var homes = await _client.GetHomesAsync();
-
-            // 2. 获取设备列表
             var rawDevices = await _client.GetDevicesAsync();
 
-            // 3. 应用数据并刷新界面
             ApplyHomeAndDeviceData(homes, rawDevices);
-
-            // 4. 异步持久化到磁盘缓存
             _ = DeviceCacheService.SaveCacheAsync(homes, rawDevices);
         }
         catch (Exception ex)
@@ -233,26 +263,53 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     private void ApplyHomeAndDeviceData(List<HomeInfo> homes, List<DeviceInfo> rawDevices)
     {
-        var primaryHome = homes.FirstOrDefault();
-        if (primaryHome != null)
+        _allRawDevices.Clear();
+        _allRawDevices.AddRange(rawDevices);
+
+        AvailableHomes.Clear();
+        foreach (var h in homes)
         {
-            CurrentHomeName = primaryHome.Name;
+            AvailableHomes.Add(new HomeCategoryItem
+            {
+                Id = h.Id,
+                Name = h.Name,
+                RoomCount = h.Rooms.Count,
+                RawHome = h
+            });
         }
 
-        // 建立 did -> roomName 映射字典
+        if (SelectedHome == null || !AvailableHomes.Any(h => h.Id == SelectedHome.Id))
+        {
+            SelectedHome = AvailableHomes.FirstOrDefault();
+        }
+
+        if (SelectedHome != null)
+        {
+            CurrentHomeName = SelectedHome.Name;
+        }
+
+        RebuildRoomsForCurrentHome();
+    }
+
+    private void RebuildRoomsForCurrentHome()
+    {
+        var rawHome = SelectedHome?.RawHome;
         var didToRoomName = new Dictionary<string, string>();
+        var homeDids = new HashSet<string>();
+
         var roomCategories = new List<RoomCategoryItem>
         {
-            new() { Id = "__ALL__", Name = "全部设备", DeviceCount = rawDevices.Count }
+            new() { Id = "__ALL__", Name = "全部", DeviceCount = 0 }
         };
 
-        if (primaryHome != null)
+        if (rawHome != null)
         {
-            foreach (var r in primaryHome.Rooms)
+            foreach (var r in rawHome.Rooms)
             {
                 foreach (var did in r.Dids)
                 {
                     didToRoomName[did] = r.Name;
+                    homeDids.Add(did);
                 }
                 roomCategories.Add(new RoomCategoryItem
                 {
@@ -263,7 +320,10 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             }
         }
 
-        // 更新房间列表
+        // 当前家庭下的设备集合（若当前家庭明确定义了 dids 则过滤，否则包含所有关联此家房间的设备）
+        var currentHomeDevices = _allRawDevices.Where(d => homeDids.Count == 0 || homeDids.Contains(d.Did)).ToList();
+        roomCategories[0].DeviceCount = currentHomeDevices.Count;
+
         Rooms.Clear();
         foreach (var r in roomCategories)
         {
@@ -271,12 +331,10 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
         SelectedRoom = Rooms.FirstOrDefault();
 
-        // 自动刷新可用的小爱音箱
-        XiaoAiVm.RefreshSpeakers(rawDevices);
+        XiaoAiVm.RefreshSpeakers(currentHomeDevices);
 
-        // 3. 构建卡片并加载 Spec
         _allDeviceCards.Clear();
-        foreach (var dev in rawDevices)
+        foreach (var dev in currentHomeDevices)
         {
             if (didToRoomName.TryGetValue(dev.Did, out var rName))
             {
@@ -287,7 +345,6 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             _allDeviceCards.Add(card);
         }
 
-        // 异步解析各设备的 Spec
         _ = Task.Run(async () =>
         {
             foreach (var card in _allDeviceCards)
@@ -298,7 +355,6 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
                     card.ApplySpec(spec);
                 }
             }
-            // 拉取一轮开关状态
             await PollDevicePropertiesOnceAsync();
         });
 
@@ -313,16 +369,14 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         var query = _allDeviceCards.AsEnumerable();
 
-        // 房间过滤
         if (SelectedRoom != null && SelectedRoom.Id != "__ALL__")
         {
             query = query.Where(d => d.RoomName == SelectedRoom.Name);
         }
 
-        // 关键词过滤
         if (!string.IsNullOrWhiteSpace(SearchKeyword))
         {
-            string kw = SearchKeyword.Trim();
+            var kw = SearchKeyword.Trim();
             query = query.Where(d =>
                 d.Name.Contains(kw, StringComparison.OrdinalIgnoreCase) ||
                 d.Device.Model.Contains(kw, StringComparison.OrdinalIgnoreCase) ||
@@ -336,9 +390,6 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
     }
 
-    /// <summary>
-    /// 后台周期性轮询属性状态
-    /// </summary>
     private void StartBackgroundPolling()
     {
         _pollLoopCts?.Cancel();
@@ -346,7 +397,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         _ = Task.Run(async () =>
         {
-            using var periodicTimer = new PeriodicTimer(TimeSpan.FromSeconds(8));
+            using var periodicTimer = new PeriodicTimer(TimeSpan.FromSeconds(5));
             while (!_pollLoopCts.Token.IsCancellationRequested &&
                    await periodicTimer.WaitForNextTickAsync(_pollLoopCts.Token))
             {
@@ -356,7 +407,6 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
                 }
                 catch
                 {
-                    // 忽略单次网络闪断
                 }
             }
         });
@@ -364,7 +414,6 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     private async Task PollDevicePropertiesOnceAsync()
     {
-        // 收集所有具有开关的卡片
         var switchTargets = _allDeviceCards
             .Where(c => c.IsOnline && c.HasSwitch)
             .Select(c => new MiotPropGetTarget
@@ -377,7 +426,6 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         if (switchTargets.Count == 0) return;
 
-        // 分批查询（每批最多 30 个，避免单包超限）
         foreach (var batch in switchTargets.Chunk(30))
         {
             var results = await _client.GetPropertiesAsync(batch);

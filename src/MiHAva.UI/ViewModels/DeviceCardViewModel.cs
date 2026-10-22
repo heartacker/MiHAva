@@ -33,10 +33,41 @@ public partial class DeviceCardViewModel : ObservableObject
     [ObservableProperty]
     private bool _isBusy;
 
+    /// <summary>
+    /// 设备品类图标 Emoji / 图标
+    /// </summary>
+    public string CategoryIcon => ResolveCategoryIcon(Device.Model, Name);
+
     public int SwitchSiid { get; private set; } = 2;
     public int SwitchPiid { get; private set; } = 1;
 
     public MiotSpecInstance? SpecInstance { get; set; }
+
+    private static string ResolveCategoryIcon(string model, string name)
+    {
+        string m = model.ToLowerInvariant();
+        string n = name.ToLowerInvariant();
+
+        if (m.Contains("light") || m.Contains("lamp") || n.Contains("灯")) return "💡";
+        if (m.Contains("switch") || n.Contains("开关")) return "🔘";
+        if (m.Contains("plug") || m.Contains("socket") || n.Contains("插座") || n.Contains("插头")) return "🔌";
+        if (m.Contains("gateway") || n.Contains("网关")) return "📡";
+        if (m.Contains("curtain") || n.Contains("窗帘")) return "🪟";
+        if (m.Contains("aircondition") || m.Contains("airer") || n.Contains("空调")) return "❄️";
+        if (m.Contains("fan") || n.Contains("风扇")) return "🌀";
+        if (m.Contains("airpurifier") || n.Contains("净化器")) return "🍃";
+        if (m.Contains("vacuum") || n.Contains("扫地")) return "🧹";
+        if (m.Contains("camera") || n.Contains("摄像")) return "📷";
+        if (m.Contains("speaker") || m.Contains("audio") || n.Contains("音箱") || n.Contains("小爱")) return "🔊";
+        if (m.Contains("sensor") || m.Contains("magnet") || n.Contains("传感器") || n.Contains("门磁") || n.Contains("人体")) return "🚨";
+        if (m.Contains("watch") || m.Contains("band") || n.Contains("手环") || n.Contains("手表")) return "⌚";
+        if (m.Contains("lock") || n.Contains("门锁")) return "🔒";
+        if (m.Contains("humidifier") || n.Contains("加湿")) return "💧";
+        if (m.Contains("heater") || n.Contains("取暖") || n.Contains("暖气")) return "🔥";
+        if (m.Contains("tv") || n.Contains("电视")) return "📺";
+
+        return "📱";
+    }
 
     /// <summary>
     /// 请求打开设备详情弹窗事件
