@@ -1,0 +1,3 @@
+[submodule "src/MiJia.Net"]
+	path = src/MiJia.Net
+	url = https://github.com/heartacker/MiJia.Net.git
