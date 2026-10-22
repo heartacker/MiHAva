@@ -30,6 +30,7 @@ public partial class SpecPropertyItemViewModel : ObservableObject
     private readonly string _did;
     private readonly IDeviceJobChannel _jobChannel;
     private readonly IDeviceStateCoordinator _coordinator;
+    private bool _isUpdatingFromRemote;
 
     public MiotSpecProperty Property { get; }
     public int Siid { get; }
@@ -115,36 +116,62 @@ public partial class SpecPropertyItemViewModel : ObservableObject
 
         if (effective == null) return;
 
-        switch (Kind)
+        _isUpdatingFromRemote = true;
+        try
         {
-            case SpecPropertyKind.Boolean:
-                if (effective is bool b) BoolValue = b;
-                else if (effective is System.Text.Json.JsonElement jeb && (jeb.ValueKind == System.Text.Json.JsonValueKind.True || jeb.ValueKind == System.Text.Json.JsonValueKind.False))
-                    BoolValue = jeb.GetBoolean();
-                DisplayText = BoolValue ? "开启" : "关闭";
-                break;
+            switch (Kind)
+            {
+                case SpecPropertyKind.Boolean:
+                    if (effective is bool b) BoolValue = b;
+                    else if (effective is System.Text.Json.JsonElement jeb && (jeb.ValueKind == System.Text.Json.JsonValueKind.True || jeb.ValueKind == System.Text.Json.JsonValueKind.False))
+                        BoolValue = jeb.GetBoolean();
+                    DisplayText = BoolValue ? "开启" : "关闭";
+                    break;
 
-            case SpecPropertyKind.RangeSlider:
-                if (double.TryParse(effective.ToString(), out double d))
-                {
-                    DoubleValue = d;
-                    DisplayText = $"{d} {Unit}".Trim();
-                }
-                break;
+                case SpecPropertyKind.RangeSlider:
+                    if (double.TryParse(effective.ToString(), out double d))
+                    {
+                        DoubleValue = d;
+                        DisplayText = $"{d} {Unit}".Trim();
+                    }
+                    break;
 
-            case SpecPropertyKind.ValueList:
-                if (int.TryParse(effective.ToString(), out int val))
-                {
-                    SelectedOption = Options.FirstOrDefault(x => x.Value == val);
-                    DisplayText = SelectedOption?.Description ?? val.ToString();
-                }
-                break;
+                case SpecPropertyKind.ValueList:
+                    if (int.TryParse(effective.ToString(), out int val))
+                    {
+                        SelectedOption = Options.FirstOrDefault(x => x.Value == val);
+                        DisplayText = SelectedOption?.Description ?? val.ToString();
+                    }
+                    break;
 
-            case SpecPropertyKind.ReadOnlyText:
-            case SpecPropertyKind.StringText:
-                DisplayText = $"{effective} {Unit}".Trim();
-                break;
+                case SpecPropertyKind.ReadOnlyText:
+                case SpecPropertyKind.StringText:
+                    DisplayText = $"{effective} {Unit}".Trim();
+                    break;
+            }
         }
+        finally
+        {
+            _isUpdatingFromRemote = false;
+        }
+    }
+
+    partial void OnBoolValueChanged(bool value)
+    {
+        if (_isUpdatingFromRemote) return;
+        _ = SetBoolValueAsync(value);
+    }
+
+    partial void OnDoubleValueChanged(double value)
+    {
+        if (_isUpdatingFromRemote) return;
+        _ = SetDoubleValueAsync(value);
+    }
+
+    partial void OnSelectedOptionChanged(ValueOption? value)
+    {
+        if (_isUpdatingFromRemote || value == null) return;
+        _ = SetOptionAsync(value);
     }
 
     /// <summary>
