@@ -1,10 +1,8 @@
 using Avalonia;
-using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.iOS;
 using Foundation;
 using MiHAva.UI;
-using MiHAva.UI.ViewModels;
 using MiHAva.UI.Views;
 using UIKit;
 
@@ -22,26 +20,13 @@ public class AppDelegate : AvaloniaAppDelegate<iOSApp>
 
 public partial class iOSApp : MiHAvaApplication
 {
-    public override async void OnFrameworkInitializationCompleted()
+    public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is ISingleViewApplicationLifetime singleView)
         {
-            var root = new ContentControl();
-            singleView.MainView = root;
-
-            var initialVm = await ResolveInitialViewModelAsync(onLoggedIn: mainVm =>
-            {
-                root.Content = new MainView { DataContext = mainVm };
-            });
-
-            if (initialVm is MainViewModel mainVm)
-            {
-                root.Content = new MainView { DataContext = mainVm };
-            }
-            else if (initialVm is LoginViewModel loginVm)
-            {
-                root.Content = new LoginView { DataContext = loginVm };
-            }
+            var shell = new SingleViewShell();
+            singleView.MainView = shell;
+            _ = shell.InitializeAsync();
         }
 
         base.OnFrameworkInitializationCompleted();
