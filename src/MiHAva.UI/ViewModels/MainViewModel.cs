@@ -104,6 +104,21 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private bool _isAllRoomSelected = true;
 
     [ObservableProperty]
+    private bool _hideOfflineDevices;
+
+    partial void OnHideOfflineDevicesChanged(bool value)
+    {
+        DeviceSettingsService.HideOfflineDevices = value;
+        ApplyFilter();
+    }
+
+    [RelayCommand]
+    public void ToggleHideOfflineDevices()
+    {
+        HideOfflineDevices = !HideOfflineDevices;
+    }
+
+    [ObservableProperty]
     private bool _isHomeSwitcherOpen;
 
     public ObservableCollection<HomeCategoryItem> AvailableHomes { get; } = [];
@@ -301,6 +316,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _specClient = specClient;
         _jobChannel = jobChannel;
         _coordinator = coordinator;
+        _hideOfflineDevices = DeviceSettingsService.HideOfflineDevices;
         XiaoAiVm = new XiaoAiCommandViewModel(client, specClient);
     }
 
@@ -564,6 +580,11 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     {
         var query = _allDeviceCards.AsEnumerable();
 
+        if (HideOfflineDevices)
+        {
+            query = query.Where(d => d.IsOnline);
+        }
+
         if (SelectedRoom != null && SelectedRoom.Id != "__ALL__")
         {
             query = query.Where(d => d.RoomName == SelectedRoom.Name);
@@ -624,19 +645,34 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     private async Task PollDevicePropertiesOnceAsync()
     {
-        var switchTargets = _allDeviceCards
-            .Where(c => c.IsOnline && c.HasSwitch)
-            .Select(c => new MiotPropGetTarget
+        var targets = new List<MiotPropGetTarget>();
+
+        foreach (var c in _allDeviceCards.Where(c => c.IsOnline))
+        {
+            if (c.HasSwitch)
             {
-                Did = c.Device.Did,
-                Siid = c.SwitchSiid,
-                Piid = c.SwitchPiid
-            })
-            .ToList();
+                targets.Add(new MiotPropGetTarget
+                {
+                    Did = c.Device.Did,
+                    Siid = c.SwitchSiid,
+                    Piid = c.SwitchPiid
+                });
+            }
 
-        if (switchTargets.Count == 0) return;
+            foreach (var m in c.MetricSensors)
+            {
+                targets.Add(new MiotPropGetTarget
+                {
+                    Did = c.Device.Did,
+                    Siid = m.siid,
+                    Piid = m.piid
+                });
+            }
+        }
 
-        foreach (var batch in switchTargets.Chunk(30))
+        if (targets.Count == 0) return;
+
+        foreach (var batch in targets.Chunk(30))
         {
             var results = await _client.GetPropertiesAsync(batch);
             foreach (var r in results.Where(x => x.IsSuccess))
@@ -658,6 +694,12 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             _jobChannel,
             _coordinator,
             card.IsSwitchOn);
+
+        detailVm.DeviceNameChanged += (did, newName) =>
+        {
+            card.UpdateName(newName);
+            ApplyFilter();
+        };
 
         OpenDeviceDetailRequested?.Invoke(detailVm);
     }

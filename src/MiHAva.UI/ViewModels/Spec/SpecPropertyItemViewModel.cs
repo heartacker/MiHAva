@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MiHAva.UI.Services;
 using MiJia.Net.Models.Spec;
 using MiJia.Net.State;
 
@@ -132,7 +133,7 @@ public partial class SpecPropertyItemViewModel : ObservableObject
                     if (double.TryParse(effective.ToString(), out double d))
                     {
                         DoubleValue = d;
-                        DisplayText = $"{d} {Unit}".Trim();
+                        DisplayText = MetricFormatter.FormatMetric(Description, d, Unit);
                     }
                     break;
 
@@ -146,7 +147,14 @@ public partial class SpecPropertyItemViewModel : ObservableObject
 
                 case SpecPropertyKind.ReadOnlyText:
                 case SpecPropertyKind.StringText:
-                    DisplayText = $"{effective} {Unit}".Trim();
+                    if (double.TryParse(effective.ToString(), out double num))
+                    {
+                        DisplayText = MetricFormatter.FormatMetric(Description, num, Unit);
+                    }
+                    else
+                    {
+                        DisplayText = $"{effective} {Unit}".Trim();
+                    }
                     break;
             }
         }
@@ -193,7 +201,7 @@ public partial class SpecPropertyItemViewModel : ObservableObject
     {
         if (!CanWrite) return;
         DoubleValue = value;
-        DisplayText = $"{value} {Unit}".Trim();
+        DisplayText = MetricFormatter.FormatMetric(Description, value, Unit);
 
         object targetVal = Property.Format.StartsWith("int") || Property.Format.StartsWith("uint")
             ? (int)Math.Round(value)

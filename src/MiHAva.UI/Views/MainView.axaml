@@ -197,6 +197,17 @@
                                 Padding="8,5"
                                 CornerRadius="10"
                                 FontSize="13"/>
+                        <!-- 隐藏离线开关 -->
+                        <ToggleButton IsChecked="{Binding HideOfflineDevices, Mode=TwoWay}"
+                                      Padding="10,6"
+                                      CornerRadius="10"
+                                      FontSize="12"
+                                      ToolTip.Tip="开启后隐藏所有离线设备，减少无效轮询">
+                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                <TextBlock Text="👁️‍🗨️" FontSize="11" VerticalAlignment="Center"/>
+                                <TextBlock Text="隐藏离线" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </ToggleButton>
                         <Button Content="桌面挂件" 
                                 Command="{Binding ToggleDesktopBoardCommand}"
                                 Padding="10,6"

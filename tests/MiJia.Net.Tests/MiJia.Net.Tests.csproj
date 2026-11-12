@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\MiJia.Net\MiJia.Net.csproj" />
+    <ProjectReference Include="..\..\src\MiHAva.UI\MiHAva.UI.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,7 +1,10 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MiHAva.UI.Services;
 using MiJia.Net.Models.Devices;
 using MiJia.Net.Models.Spec;
 using MiJia.Net.State;
@@ -14,6 +17,7 @@ public partial class DeviceCardViewModel : ObservableObject
     private readonly IDeviceStateCoordinator _coordinator;
 
     public DeviceInfo Device { get; }
+    public string OriginalCloudName { get; }
 
     [ObservableProperty]
     private string _name;
@@ -32,6 +36,47 @@ public partial class DeviceCardViewModel : ObservableObject
 
     [ObservableProperty]
     private bool _isBusy;
+
+    [ObservableProperty]
+    private string _metricSubtitle = string.Empty;
+
+    public string StatusSummaryText
+    {
+        get
+        {
+            if (!IsOnline) return "离线";
+            if (!HasSwitch)
+            {
+                return !string.IsNullOrEmpty(MetricSubtitle) ? MetricSubtitle : "在线";
+            }
+            string switchText = IsSwitchOn ? "已开启" : "已关闭";
+            return !string.IsNullOrEmpty(MetricSubtitle) ? $"{switchText} · {MetricSubtitle}" : switchText;
+        }
+    }
+
+    public bool IsActiveStatus => IsOnline && HasSwitch && IsSwitchOn;
+    public bool IsOfflineStatus => !IsOnline;
+
+    partial void OnIsOnlineChanged(bool value)
+    {
+        OnPropertyChanged(nameof(StatusSummaryText));
+        OnPropertyChanged(nameof(IsOfflineStatus));
+        OnPropertyChanged(nameof(IsActiveStatus));
+    }
+
+    partial void OnIsSwitchOnChanged(bool value)
+    {
+        OnPropertyChanged(nameof(StatusSummaryText));
+        OnPropertyChanged(nameof(IsActiveStatus));
+    }
+
+    partial void OnMetricSubtitleChanged(string value)
+    {
+        OnPropertyChanged(nameof(StatusSummaryText));
+    }
+
+    public List<(int siid, int piid, string desc, string? unit)> MetricSensors { get; } = [];
+    private readonly Dictionary<(int siid, int piid), string> _metricValues = [];
 
     /// <summary>
     /// 设备品类图标 Emoji / 图标
@@ -89,9 +134,15 @@ public partial class DeviceCardViewModel : ObservableObject
         _jobChannel = jobChannel;
         _coordinator = coordinator;
 
-        _name = string.IsNullOrWhiteSpace(device.Name) ? device.Model : device.Name;
+        OriginalCloudName = string.IsNullOrWhiteSpace(device.Name) ? device.Model : device.Name;
+        _name = DeviceSettingsService.GetCustomName(device.Did) ?? OriginalCloudName;
         _roomName = device.RoomName ?? "默认房间";
         _isOnline = device.IsOnline;
+    }
+
+    public void UpdateName(string newName)
+    {
+        Name = newName;
     }
 
     /// <summary>
@@ -102,13 +153,15 @@ public partial class DeviceCardViewModel : ObservableObject
         SpecInstance = spec;
         if (spec == null) return;
 
-        // 尝试寻找开关属性 (常见为 siid:2, piid:1 或服务类型为 switch/light 的 on 属性)
+        MetricSensors.Clear();
+
+        // 尝试寻找开关属性与常用环境/功率指标
         foreach (var s in spec.Services)
         {
             if (s.Properties == null) continue;
             foreach (var p in s.Properties)
             {
-                if (p.Format == "bool" && p.CanWrite && 
+                if (!HasSwitch && p.Format == "bool" && p.CanWrite && 
                    (p.Description.Contains("Switch", StringComparison.OrdinalIgnoreCase) ||
                     p.Description.Contains("Status", StringComparison.OrdinalIgnoreCase) ||
                     p.Description.Contains("Power", StringComparison.OrdinalIgnoreCase) ||
@@ -117,7 +170,16 @@ public partial class DeviceCardViewModel : ObservableObject
                     SwitchSiid = s.Iid;
                     SwitchPiid = p.Iid;
                     HasSwitch = true;
-                    return;
+                    OnPropertyChanged(nameof(StatusSummaryText));
+                    OnPropertyChanged(nameof(IsActiveStatus));
+                }
+                else if (p.CanRead && 
+                        (p.Description.Contains("temperature", StringComparison.OrdinalIgnoreCase) ||
+                         p.Description.Contains("humidity", StringComparison.OrdinalIgnoreCase) ||
+                         p.Description.Contains("power", StringComparison.OrdinalIgnoreCase) ||
+                         p.Description.Contains("pm2.5", StringComparison.OrdinalIgnoreCase)))
+                {
+                    MetricSensors.Add((s.Iid, p.Iid, p.Description, p.Unit));
                 }
             }
         }
@@ -140,6 +202,20 @@ public partial class DeviceCardViewModel : ObservableObject
                 {
                     if (je.ValueKind == System.Text.Json.JsonValueKind.True) IsSwitchOn = true;
                     else if (je.ValueKind == System.Text.Json.JsonValueKind.False) IsSwitchOn = false;
+                }
+            }
+        }
+        else
+        {
+            // 检查是否为副标题传感器指标
+            var sensor = MetricSensors.FirstOrDefault(m => m.siid == siid && m.piid == piid);
+            if (sensor != default && value != null)
+            {
+                if (double.TryParse(value.ToString(), out double num))
+                {
+                    string formatted = MetricFormatter.FormatMetric(sensor.desc, num, sensor.unit);
+                    _metricValues[(siid, piid)] = formatted;
+                    MetricSubtitle = string.Join(" · ", _metricValues.Values);
                 }
             }
         }

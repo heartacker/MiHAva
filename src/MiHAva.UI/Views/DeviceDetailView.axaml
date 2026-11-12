@@ -66,10 +66,30 @@
                 
                 <!-- 设备基本属性 -->
                 <StackPanel Grid.Column="0" Spacing="4">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
+                    <!-- 设备名称（正常展示态） -->
+                    <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !IsEditingName}">
                         <TextBlock Text="{Binding DeviceName}" 
                                    FontSize="20" 
-                                   FontWeight="Bold"/>
+                                   FontWeight="Bold"
+                                   VerticalAlignment="Center"/>
+                        <!-- 改名按钮 -->
+                        <Button Content="✏️" 
+                                Command="{Binding StartEditNameCommand}"
+                                ToolTip.Tip="重命名设备"
+                                Padding="6,2"
+                                CornerRadius="6"
+                                FontSize="12"
+                                VerticalAlignment="Center"/>
+                        <!-- 恢复默认名称按钮 -->
+                        <Button Content="恢复默认"
+                                IsVisible="{Binding HasCustomName}"
+                                Command="{Binding ResetToDefaultNameCommand}"
+                                ToolTip.Tip="清除自定义重命名，恢复云端原始设备名"
+                                Padding="8,3"
+                                CornerRadius="6"
+                                FontSize="11"
+                                Foreground="{DynamicResource SystemBaseMediumColor}"
+                                VerticalAlignment="Center"/>
                         <Border Background="{DynamicResource SystemBaseLowColor}" 
                                 CornerRadius="4" 
                                 Padding="8,2"
@@ -78,6 +98,31 @@
                                        FontSize="11" 
                                        Foreground="{DynamicResource SystemBaseMediumColor}"/>
                         </Border>
+                    </StackPanel>
+
+                    <!-- 设备名称（编辑态） -->
+                    <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsEditingName}">
+                        <TextBox Text="{Binding CustomNameInput, Mode=TwoWay}"
+                                 Width="200"
+                                 CornerRadius="6"
+                                 Padding="8,4"
+                                 FontSize="14"
+                                 VerticalAlignment="Center"/>
+                        <Button Content="✓"
+                                Command="{Binding SaveCustomNameCommand}"
+                                ToolTip.Tip="保存自定义名称"
+                                Background="#10B981"
+                                Foreground="White"
+                                FontWeight="Bold"
+                                Padding="10,4"
+                                CornerRadius="6"
+                                VerticalAlignment="Center"/>
+                        <Button Content="✕"
+                                Command="{Binding CancelEditNameCommand}"
+                                ToolTip.Tip="取消"
+                                Padding="10,4"
+                                CornerRadius="6"
+                                VerticalAlignment="Center"/>
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Spacing="12">

@@ -78,6 +78,18 @@
             <Setter Property="Background" Value="{DynamicResource SystemChromeMediumColor}" />
             <Setter Property="Foreground" Value="{DynamicResource SystemBaseHighColor}" />
         </Style>
+
+        <!-- 状态文本样式 -->
+        <Style Selector="TextBlock.statusTxt">
+            <Setter Property="Foreground" Value="{DynamicResource SystemBaseMediumColor}" />
+        </Style>
+        <Style Selector="TextBlock.statusTxt.active">
+            <Setter Property="Foreground" Value="#10B981" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="TextBlock.statusTxt.offline">
+            <Setter Property="Foreground" Value="#EF4444" />
+        </Style>
     </UserControl.Styles>
 
     <!-- 卡片主体：流式排布，宽度自适应 -->
@@ -159,24 +171,14 @@
 
                 <!-- 状态指示 -->
                 <Grid Grid.Row="1" Margin="0,3,0,0" ColumnDefinitions="*,Auto">
-                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-                        <!-- 在线且开启 -->
-                        <TextBlock Text="已开启" 
-                                   FontSize="12" 
-                                   Foreground="#10B981" 
-                                   FontWeight="SemiBold"
-                                   IsVisible="{Binding IsSwitchOn}"/>
-                        <!-- 在线且关闭 -->
-                        <TextBlock Text="已关闭" 
-                                   FontSize="12" 
-                                   Foreground="{DynamicResource SystemBaseMediumColor}" 
-                                   IsVisible="{Binding !IsSwitchOn}"/>
-                        <!-- 离线提示 -->
-                        <TextBlock Text="· 离线" 
-                                   FontSize="12" 
-                                   Foreground="#EF4444" 
-                                   IsVisible="{Binding !IsOnline}"/>
-                    </StackPanel>
+                    <TextBlock Grid.Column="0" 
+                               Classes="statusTxt"
+                               Classes.active="{Binding IsActiveStatus}"
+                               Classes.offline="{Binding IsOfflineStatus}"
+                               Text="{Binding StatusSummaryText}" 
+                               FontSize="12" 
+                               TextTrimming="CharacterEllipsis"
+                               VerticalAlignment="Center"/>
 
                     <!-- 操作中加载 Spinner -->
                     <ProgressBar Grid.Column="1" 

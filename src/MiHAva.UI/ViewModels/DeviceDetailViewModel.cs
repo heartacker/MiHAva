@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using MiHAva.UI.Services;
 using MiHAva.UI.ViewModels.Spec;
 using MiJia.Net.Cloud;
 using MiJia.Net.Models.Devices;
@@ -32,6 +33,20 @@ public partial class DeviceDetailViewModel : ObservableObject
 
     [ObservableProperty]
     private string _deviceName;
+
+    [ObservableProperty]
+    private string _originalCloudName;
+
+    [ObservableProperty]
+    private bool _isEditingName;
+
+    [ObservableProperty]
+    private string _customNameInput = string.Empty;
+
+    [ObservableProperty]
+    private bool _hasCustomName;
+
+    public event Action<string, string>? DeviceNameChanged;
 
     [ObservableProperty]
     private string _roomName;
@@ -86,7 +101,10 @@ public partial class DeviceDetailViewModel : ObservableObject
         _coordinator = coordinator;
         _isPowerOn = initialPowerState;
 
-        _deviceName = string.IsNullOrWhiteSpace(device.Name) ? device.Model : device.Name;
+        _originalCloudName = string.IsNullOrWhiteSpace(device.Name) ? device.Model : device.Name;
+        string? customName = DeviceSettingsService.GetCustomName(device.Did);
+        _hasCustomName = !string.IsNullOrEmpty(customName);
+        _deviceName = customName ?? _originalCloudName;
         _roomName = device.RoomName ?? "默认房间";
         _isOnline = device.IsOnline;
 
@@ -163,6 +181,49 @@ public partial class DeviceDetailViewModel : ObservableObject
                 });
             }
         }
+    }
+
+    [RelayCommand]
+    public void StartEditName()
+    {
+        CustomNameInput = DeviceName;
+        IsEditingName = true;
+    }
+
+    [RelayCommand]
+    public void SaveCustomName()
+    {
+        string trimmed = CustomNameInput?.Trim() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(trimmed) && trimmed != OriginalCloudName)
+        {
+            DeviceSettingsService.SetCustomName(Device.Did, trimmed);
+            DeviceName = trimmed;
+            HasCustomName = true;
+        }
+        else
+        {
+            DeviceSettingsService.SetCustomName(Device.Did, null);
+            DeviceName = OriginalCloudName;
+            HasCustomName = false;
+        }
+        IsEditingName = false;
+        DeviceNameChanged?.Invoke(Device.Did, DeviceName);
+    }
+
+    [RelayCommand]
+    public void ResetToDefaultName()
+    {
+        DeviceSettingsService.SetCustomName(Device.Did, null);
+        DeviceName = OriginalCloudName;
+        HasCustomName = false;
+        IsEditingName = false;
+        DeviceNameChanged?.Invoke(Device.Did, DeviceName);
+    }
+
+    [RelayCommand]
+    public void CancelEditName()
+    {
+        IsEditingName = false;
     }
 
     /// <summary>
@@ -271,8 +332,18 @@ public partial class DeviceDetailViewModel : ObservableObject
 
         if (candidateHero != null)
         {
-            HeroValue = candidateHero.DisplayText.Split(' ')[0];
-            HeroUnit = candidateHero.Unit ?? "";
+            string display = candidateHero.DisplayText;
+            if (display.Contains(' '))
+            {
+                var parts = display.Split(' ', 2);
+                HeroValue = parts[0];
+                HeroUnit = parts.Length > 1 ? parts[1] : (candidateHero.Unit ?? "");
+            }
+            else
+            {
+                HeroValue = display;
+                HeroUnit = candidateHero.Unit ?? "";
+            }
             HeroLabel = candidateHero.Description;
             HeroStatus = IsPowerOn ? "运行中 · 优" : "待机中";
         }
