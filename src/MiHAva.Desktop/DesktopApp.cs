@@ -32,7 +32,7 @@ public partial class DesktopApp : MiHAvaApplication
     private void SetupSystemTray(IClassicDesktopStyleApplicationLifetime desktop)
     {
         var appIcon = DesktopIconHelper.GetOrCreateAppIcon();
-        if (_mainWindow != null)
+        if (_mainWindow != null && appIcon != null)
         {
             _mainWindow.Icon = appIcon;
         }
@@ -80,11 +80,14 @@ public partial class DesktopApp : MiHAvaApplication
         // 初始化 TrayIcon
         _trayIcon = new TrayIcon
         {
-            Icon = appIcon,
             ToolTipText = "MiHAva - 米家客户端",
             Menu = nativeMenu,
             IsVisible = true
         };
+        if (appIcon != null)
+        {
+            _trayIcon.Icon = appIcon;
+        }
 
         // 托盘点击事件：呼出快捷气泡窗口
         _trayIcon.Clicked += (s, e) => ToggleTrayControlWindow();
