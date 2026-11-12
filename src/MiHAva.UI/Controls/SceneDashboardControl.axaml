@@ -1,0 +1,322 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MiHAva.UI.ViewModels"
+             x:Class="MiHAva.UI.Controls.SceneDashboardControl"
+             x:DataType="vm:MainViewModel">
+
+    <UserControl.Styles>
+        <!-- 环境指标胶囊样式 -->
+        <Style Selector="Border.envCapsule">
+            <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Padding" Value="16,12" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.2" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.envCapsule:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.02)" />
+        </Style>
+
+        <!-- 场景大磁贴卡片样式（贴合截图 2 列圆角卡片） -->
+        <Style Selector="Button.sceneTile">
+            <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Padding" Value="18,16" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1" />
+                    <BrushTransition Property="Background" Duration="0:0:0.2" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.sceneTile:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.015)" />
+            <Setter Property="Background" Value="{DynamicResource SystemChromeMediumColor}" />
+        </Style>
+
+        <!-- 房间聚合小卡片样式（贴合截图中的大房间、阳台卡片） -->
+        <Style Selector="Border.roomSummaryCard">
+            <Setter Property="Width" Value="168" />
+            <Setter Property="Height" Value="154" />
+            <Setter Property="Margin" Value="0,0,12,0" />
+            <Setter Property="Padding" Value="14,14" />
+            <Setter Property="CornerRadius" Value="18" />
+            <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BoxShadow" Value="0 4 12 0 #0D000000" />
+        </Style>
+
+        <!-- 房间内全开/全关操作药丸按钮 -->
+        <Style Selector="Button.roomActionBtn">
+            <Setter Property="Background" Value="{DynamicResource SystemChromeMediumColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource SystemBaseHighColor}" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style Selector="Button.roomActionBtn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SystemChromeHighColor}" />
+        </Style>
+
+        <!-- 分类圆形全关快捷按钮 -->
+        <Style Selector="Button.catQuickBtn">
+            <Setter Property="Width" Value="38" />
+            <Setter Property="Height" Value="38" />
+            <Setter Property="CornerRadius" Value="19" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource SystemBaseHighColor}" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+    </UserControl.Styles>
+
+    <ScrollViewer Padding="20,16">
+        <StackPanel Spacing="22" MaxWidth="960" HorizontalAlignment="Stretch">
+            
+            <!-- 1. 顶部全屋环境状态三大胶囊（贴合截图顶部：温度区间、湿度区间、空气品质） -->
+            <Grid ColumnDefinitions="*,*,*">
+                
+                <!-- 温度胶囊 -->
+                <Border Grid.Column="0" Classes="envCapsule" Margin="0,0,8,0">
+                    <StackPanel Spacing="4" HorizontalAlignment="Center">
+                        <TextBlock Text="🌡️" FontSize="18" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding EnvironmentTempRange}" 
+                                   FontSize="15" 
+                                   FontWeight="Bold" 
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="室内温度" FontSize="10" Foreground="{DynamicResource SystemBaseMediumColor}" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- 湿度胶囊 -->
+                <Border Grid.Column="1" Classes="envCapsule" Margin="4,0,4,0">
+                    <StackPanel Spacing="4" HorizontalAlignment="Center">
+                        <TextBlock Text="💧" FontSize="18" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding EnvironmentHumidityRange}" 
+                                   FontSize="15" 
+                                   FontWeight="Bold" 
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="室内湿度" FontSize="10" Foreground="{DynamicResource SystemBaseMediumColor}" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- 空气品质胶囊 -->
+                <Border Grid.Column="2" Classes="envCapsule" Margin="8,0,0,0">
+                    <StackPanel Spacing="4" HorizontalAlignment="Center">
+                        <TextBlock Text="🍃" FontSize="18" HorizontalAlignment="Center"/>
+                        <TextBlock Text="{Binding EnvironmentAirQuality}" 
+                                   FontSize="15" 
+                                   FontWeight="Bold" 
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="空气品质" FontSize="10" Foreground="{DynamicResource SystemBaseMediumColor}" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- 2. 全屋快捷场景双列卡片（贴合截图中间网格：开关所有灯带、离家模式、回家模式、明亮模式） -->
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
+                
+                <!-- 卡片 1：开关所有灯带 -->
+                <Button Grid.Row="0" Grid.Column="0" Classes="sceneTile" Margin="0,0,6,6"
+                        Command="{Binding TurnOffAllLightsCommand}" ToolTip.Tip="点击一键切换全屋灯带">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18" Background="#2010B981" Margin="0,0,12,0">
+                            <TextBlock Text="✨" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="开关所有灯带" FontSize="14" FontWeight="Bold"/>
+                            <TextBlock Text="氛围与装饰光源" FontSize="11" Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                        </StackPanel>
+                    </Grid>
+                </Button>
+
+                <!-- 卡片 2：离家模式 -->
+                <Button Grid.Row="0" Grid.Column="1" Classes="sceneTile" Margin="6,0,0,6"
+                        Command="{Binding LeaveHomeSceneCommand}" ToolTip.Tip="关闭全屋非必要设备">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18" Background="#203B82F6" Margin="0,0,12,0">
+                            <TextBlock Text="🚪" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="离家模式" FontSize="14" FontWeight="Bold"/>
+                            <TextBlock Text="一键安心离家" FontSize="11" Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                        </StackPanel>
+                    </Grid>
+                </Button>
+
+                <!-- 卡片 3：回家模式 -->
+                <Button Grid.Row="1" Grid.Column="0" Classes="sceneTile" Margin="0,6,6,0"
+                        Command="{Binding ArriveHomeSceneCommand}" ToolTip.Tip="开启常用空间照明">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18" Background="#20F59E0B" Margin="0,0,12,0">
+                            <TextBlock Text="🛋️" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="回家模式" FontSize="14" FontWeight="Bold"/>
+                            <TextBlock Text="温暖迎宾状态" FontSize="11" Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                        </StackPanel>
+                    </Grid>
+                </Button>
+
+                <!-- 卡片 4：明亮模式 (全开) -->
+                <Button Grid.Row="1" Grid.Column="1" Classes="sceneTile" Margin="6,6,0,0"
+                        Command="{Binding TurnOnAllSceneCommand}" ToolTip.Tip="点亮全部主照明">
+                    <Grid ColumnDefinitions="Auto,*">
+                        <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18" Background="#20EF4444" Margin="0,0,12,0">
+                            <TextBlock Text="☀️" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="明亮模式" FontSize="14" FontWeight="Bold"/>
+                            <TextBlock Text="全屋光线充足" FontSize="11" Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                        </StackPanel>
+                    </Grid>
+                </Button>
+            </Grid>
+
+            <!-- 3. 六大场景分类汇总板块列表 (照明、灯带、窗帘、开关、环境温湿度、安防) -->
+            <ItemsControl ItemsSource="{Binding SceneCategories}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:SceneCategorySummaryGroup">
+                        <StackPanel Margin="0,0,0,24" Spacing="10">
+                            
+                            <!-- 分类标题栏（可点击标题进入此类的详细看每个房间情况，右侧带一键批量控制） -->
+                            <Grid ColumnDefinitions="Auto,*,Auto">
+                                
+                                <!-- 标题按钮：点击进入分类详情 -->
+                                <Button Grid.Column="0" 
+                                        Command="{Binding OpenDetailCommand}"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Padding="0"
+                                        Cursor="Hand"
+                                        ToolTip.Tip="点击查看该分类在各个房间的详细设备情况">
+                                    <StackPanel Spacing="3">
+                                        <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Title}" 
+                                                       FontSize="18" 
+                                                       FontWeight="Bold"/>
+                                            <TextBlock Text="›" 
+                                                       FontSize="20" 
+                                                       FontWeight="Bold" 
+                                                       Foreground="{DynamicResource SystemBaseMediumColor}"
+                                                       VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding StatusText}" 
+                                                   FontSize="12" 
+                                                   Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Panel Grid.Column="1"/>
+
+                                <!-- 右侧：分类快捷批量按钮 -->
+                                <StackPanel Grid.Column="2" 
+                                            Orientation="Horizontal" 
+                                            Spacing="8" 
+                                            VerticalAlignment="Center"
+                                            IsVisible="{Binding SupportsBatchSwitch}">
+                                    <Button Classes="catQuickBtn"
+                                            Command="{Binding TurnOffAllCommand}"
+                                            ToolTip.Tip="一键关闭全屋此类设备">
+                                        <TextBlock Text="🔕" FontSize="15"/>
+                                    </Button>
+                                    <Button Classes="catQuickBtn"
+                                            Command="{Binding TurnOnAllCommand}"
+                                            ToolTip.Tip="一键开启全屋此类设备">
+                                        <TextBlock Text="{Binding Icon}" FontSize="15"/>
+                                    </Button>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- 横向卡片流（按房间分组汇总，贴合截图） -->
+                            <ScrollViewer HorizontalScrollBarVisibility="Auto" 
+                                          VerticalScrollBarVisibility="Disabled">
+                                <ItemsControl ItemsSource="{Binding RoomGroups}">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:SceneCategoryRoomGroup">
+                                            <Border Classes="roomSummaryCard">
+                                                <Grid RowDefinitions="Auto,*,Auto">
+                                                    
+                                                    <!-- 房间名与房间状态 -->
+                                                    <StackPanel Grid.Row="0" Spacing="3">
+                                                        <TextBlock Text="{Binding RoomName}" 
+                                                                   FontSize="15" 
+                                                                   FontWeight="Bold"/>
+                                                        <TextBlock Text="{Binding StatusText}" 
+                                                                   FontSize="11" 
+                                                                   Foreground="{DynamicResource SystemBaseMediumColor}"
+                                                                   TextTrimming="CharacterEllipsis"/>
+                                                    </StackPanel>
+
+                                                    <Panel Grid.Row="1"/>
+
+                                                    <!-- 房间快捷按钮（针对照明、开关、窗帘等） -->
+                                                    <StackPanel Grid.Row="2" Spacing="6" IsVisible="{Binding SupportsBatchSwitch}">
+                                                        <Button Classes="roomActionBtn" 
+                                                                Command="{Binding TurnOnRoomCommand}">
+                                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                <TextBlock Text="💡" FontSize="11" VerticalAlignment="Center"/>
+                                                                <TextBlock Text="全开" VerticalAlignment="Center"/>
+                                                            </StackPanel>
+                                                        </Button>
+                                                        <Button Classes="roomActionBtn" 
+                                                                Command="{Binding TurnOffRoomCommand}">
+                                                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                                                <TextBlock Text="🔕" FontSize="11" VerticalAlignment="Center"/>
+                                                                <TextBlock Text="全关" VerticalAlignment="Center"/>
+                                                            </StackPanel>
+                                                        </Button>
+                                                    </StackPanel>
+
+                                                    <!-- 针对环境温湿度/安防：显示传感器大号指标 -->
+                                                    <Border Grid.Row="2" 
+                                                            IsVisible="{Binding !SupportsBatchSwitch}"
+                                                            Background="{DynamicResource SystemBaseLowColor}"
+                                                            CornerRadius="10"
+                                                            Padding="8,6">
+                                                        <TextBlock Text="{Binding StatusText}" 
+                                                                   FontSize="11" 
+                                                                   FontWeight="SemiBold"
+                                                                   Foreground="{DynamicResource SystemBaseHighColor}"
+                                                                   TextAlignment="Center"
+                                                                   TextWrapping="Wrap"/>
+                                                    </Border>
+
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </ScrollViewer>
+
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

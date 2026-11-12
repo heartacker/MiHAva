@@ -101,7 +101,27 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     private string _currentTabSubtitle = "全屋设备一览";
 
     [ObservableProperty]
-    private bool _isAllRoomSelected = true;
+    private bool _isAllRoomSelected;
+
+    [ObservableProperty]
+    private bool _isSceneTabSelected = true;
+
+    [ObservableProperty]
+    private string _environmentTempRange = "18.7 - 21.5°";
+
+    [ObservableProperty]
+    private string _environmentHumidityRange = "60 - 72%";
+
+    [ObservableProperty]
+    private string _environmentAirQuality = "优";
+
+    [ObservableProperty]
+    private SceneCategoryDetailViewModel? _categoryDetailVm;
+
+    [ObservableProperty]
+    private bool _isCategoryDetailOpen;
+
+    public ObservableCollection<SceneCategorySummaryGroup> SceneCategories { get; } = [];
 
     [ObservableProperty]
     private bool _hideOfflineDevices;
@@ -243,10 +263,17 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         ActiveDeviceCount = _allDeviceCards.Count(c => c.IsOnline && c.IsSwitchOn);
         SummaryText = $"{TotalDeviceCount} 台设备 · {ActiveDeviceCount} 台运行中";
 
+        RefreshSceneCategories();
+
         // 更新每个 Room 的 ActiveCount
         foreach (var r in Rooms)
         {
-            if (r.Id == "__ALL__")
+            if (r.Id == "__SCENE__")
+            {
+                r.DeviceCount = SceneCategories.Count;
+                r.ActiveCount = SceneCategories.Count(c => c.HasActive);
+            }
+            else if (r.Id == "__ALL__")
             {
                 r.DeviceCount = TotalDeviceCount;
                 r.ActiveCount = ActiveDeviceCount;
@@ -262,16 +289,84 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         UpdateCurrentTabInfo();
     }
 
+    private void RefreshSceneCategories()
+    {
+        foreach (var cat in SceneCategories)
+        {
+            cat.Rebuild(_allDeviceCards);
+        }
+
+        CalculateEnvironmentRanges();
+    }
+
+    private void CalculateEnvironmentRanges()
+    {
+        var temps = new List<double>();
+        var hums = new List<double>();
+
+        foreach (var card in _allDeviceCards.Where(c => c.IsOnline))
+        {
+            if (!string.IsNullOrEmpty(card.MetricSubtitle))
+            {
+                var parts = card.MetricSubtitle.Split('·', StringSplitOptions.TrimEntries);
+                foreach (var part in parts)
+                {
+                    if (part.EndsWith("°C"))
+                    {
+                        if (double.TryParse(part.Replace("°C", "").Trim(), out double t)) temps.Add(t);
+                    }
+                    else if (part.EndsWith("%"))
+                    {
+                        if (double.TryParse(part.Replace("%", "").Trim(), out double h)) hums.Add(h);
+                    }
+                }
+            }
+        }
+
+        if (temps.Count > 0)
+        {
+            double minT = temps.Min();
+            double maxT = temps.Max();
+            EnvironmentTempRange = Math.Abs(minT - maxT) < 0.1 ? $"{minT:F1}°" : $"{minT:F1} - {maxT:F1}°";
+        }
+        else
+        {
+            EnvironmentTempRange = "18.7 - 21.5°";
+        }
+
+        if (hums.Count > 0)
+        {
+            double minH = hums.Min();
+            double maxH = hums.Max();
+            EnvironmentHumidityRange = Math.Abs(minH - maxH) < 1 ? $"{minH:F0}%" : $"{minH:F0} - {maxH:F0}%";
+        }
+        else
+        {
+            EnvironmentHumidityRange = "60 - 72%";
+        }
+
+        EnvironmentAirQuality = "优";
+    }
+
     private void UpdateCurrentTabInfo()
     {
-        if (SelectedRoom == null || SelectedRoom.Id == "__ALL__")
+        if (SelectedRoom == null || SelectedRoom.Id == "__SCENE__")
         {
+            IsSceneTabSelected = true;
+            IsAllRoomSelected = false;
+            CurrentTabTitle = "智能场景";
+            CurrentTabSubtitle = "六大空间品类汇总 · 房间级快捷智控";
+        }
+        else if (SelectedRoom.Id == "__ALL__")
+        {
+            IsSceneTabSelected = false;
             IsAllRoomSelected = true;
-            CurrentTabTitle = "全部设备";
+            CurrentTabTitle = "全屋设备";
             CurrentTabSubtitle = $"全屋 {TotalDeviceCount} 台智能设备 · {ActiveDeviceCount} 台正在运行";
         }
         else
         {
+            IsSceneTabSelected = false;
             IsAllRoomSelected = false;
             CurrentTabTitle = SelectedRoom.Name;
             var inRoom = _allDeviceCards.Where(c => c.RoomName == SelectedRoom.Name).ToList();
@@ -318,6 +413,40 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         _coordinator = coordinator;
         _hideOfflineDevices = DeviceSettingsService.HideOfflineDevices;
         XiaoAiVm = new XiaoAiCommandViewModel(client, specClient);
+        InitializeSceneCategories();
+    }
+
+    private void InitializeSceneCategories()
+    {
+        SceneCategories.Clear();
+        var groups = new[]
+        {
+            new SceneCategorySummaryGroup(SceneCategoryType.Lighting, "照明", "💡", _jobChannel),
+            new SceneCategorySummaryGroup(SceneCategoryType.LightStrip, "灯带", "✨", _jobChannel),
+            new SceneCategorySummaryGroup(SceneCategoryType.Curtain, "遮阳", "🪟", _jobChannel),
+            new SceneCategorySummaryGroup(SceneCategoryType.Switch, "开关", "🔘", _jobChannel),
+            new SceneCategorySummaryGroup(SceneCategoryType.Environment, "环境温湿度", "🌡️", _jobChannel),
+            new SceneCategorySummaryGroup(SceneCategoryType.Security, "安防", "🛡️", _jobChannel),
+        };
+
+        foreach (var g in groups)
+        {
+            g.OpenDetailRequested += OnCategoryOpenDetailRequested;
+            SceneCategories.Add(g);
+        }
+    }
+
+    private void OnCategoryOpenDetailRequested(SceneCategorySummaryGroup group)
+    {
+        CategoryDetailVm = new SceneCategoryDetailViewModel(group);
+        CategoryDetailVm.CloseRequested += () => IsCategoryDetailOpen = false;
+        IsCategoryDetailOpen = true;
+    }
+
+    [RelayCommand]
+    public void CloseCategoryDetail()
+    {
+        IsCategoryDetailOpen = false;
     }
 
     [ObservableProperty]
@@ -460,7 +589,8 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         var roomCategories = new List<RoomCategoryItem>
         {
-            new() { Id = "__ALL__", Name = "全部", DeviceCount = 0 }
+            new() { Id = "__SCENE__", Name = "场景", DeviceCount = 6 },
+            new() { Id = "__ALL__", Name = "全屋", DeviceCount = 0 }
         };
 
         if (rawHome != null)
@@ -506,7 +636,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             currentHomeDevices.AddRange(unassigned);
         }
 
-        roomCategories[0].DeviceCount = currentHomeDevices.Count;
+        roomCategories[1].DeviceCount = currentHomeDevices.Count;
 
         Rooms.Clear();
         foreach (var r in roomCategories)
@@ -585,7 +715,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
             query = query.Where(d => d.IsOnline);
         }
 
-        if (SelectedRoom != null && SelectedRoom.Id != "__ALL__")
+        if (SelectedRoom != null && SelectedRoom.Id != "__ALL__" && SelectedRoom.Id != "__SCENE__")
         {
             query = query.Where(d => d.RoomName == SelectedRoom.Name);
         }

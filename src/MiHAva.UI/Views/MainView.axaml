@@ -416,8 +416,15 @@
                 </Grid>
             </Border>
 
-            <!-- 4. 主内容展示区：不同 Tab 显示不同房间对应的设备 -->
-            <ScrollViewer Grid.Row="3" Padding="20,14">
+            <!-- 4. 主内容展示区：不同 Tab 显示不同模式 -->
+            <!-- A. 选定“场景” Tab 时：呈现分类汇总看板 (参考米家澎湃智联场景设计) -->
+            <ctrl:SceneDashboardControl Grid.Row="3"
+                                        IsVisible="{Binding IsSceneTabSelected}"/>
+
+            <!-- B. 选定“全屋”或单个房间 Tab 时：呈现设备网格 -->
+            <ScrollViewer Grid.Row="3" 
+                          Padding="20,14"
+                          IsVisible="{Binding !IsSceneTabSelected}">
                 <StackPanel Spacing="14">
                     
                     <!-- 当前所选 Tab / 房间的标题与状态横条 -->
@@ -449,7 +456,7 @@
                         </Grid>
                     </Border>
 
-                    <!-- A. 选定单个房间 Tab 时（或搜索状态下）：直接平铺该房间内的所有设备 -->
+                    <!-- 单个房间 Tab 时（或搜索状态下）：直接平铺该房间内的所有设备 -->
                     <ItemsControl ItemsSource="{Binding FilteredDevices}"
                                   IsVisible="{Binding !IsAllRoomSelected}">
                         <ItemsControl.ItemsPanel>
@@ -464,7 +471,7 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <!-- B. 选定“全部” Tab 时：按房间分段分组呈现 -->
+                    <!-- “全屋” Tab 时：按房间分段分组呈现 -->
                     <ItemsControl ItemsSource="{Binding RoomSections}"
                                   IsVisible="{Binding IsAllRoomSelected}">
                         <ItemsControl.ItemTemplate>
@@ -509,6 +516,15 @@
                 </StackPanel>
             </ScrollViewer>
 
+        </Grid>
+
+        <!-- 5. 全局分类房间明细弹窗遮罩（点击分类“›”后呼出，查看该品类每个房间内的详情） -->
+        <Grid Background="#66000000"
+              IsVisible="{Binding IsCategoryDetailOpen}">
+            <ctrl:SceneCategoryDetailControl DataContext="{Binding CategoryDetailVm}"
+                                             HorizontalAlignment="Center"
+                                             VerticalAlignment="Center"
+                                             Margin="32"/>
         </Grid>
     </Grid>
 </UserControl>
