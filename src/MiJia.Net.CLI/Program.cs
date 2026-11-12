@@ -73,7 +73,8 @@ try
     Console.WriteLine($"共找到 {homes.Count} 个家庭：");
     foreach (var h in homes)
     {
-        Console.WriteLine($"  - 家庭: {h.Name} (ID: {h.Id}, 房间数: {h.Rooms.Count})");
+        string tag = h.IsShared ? " [共享家庭]" : " [自有家庭]";
+        Console.WriteLine($"  - 家庭:{tag} {h.Name} (ID: {h.Id}, 房间数: {h.Rooms.Count}, 设备DIDs: {h.Dids.Count})");
         foreach (var r in h.Rooms)
         {
             Console.WriteLine($"      └ 房间: {r.Name} (ID: {r.Id}, 关联设备数: {r.Dids.Count})");

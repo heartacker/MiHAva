@@ -531,8 +531,14 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         AvailableHomes.Clear();
         foreach (var h in homes)
         {
-            // 统计该家庭匹配到的设备数量
+            // 统计该家庭匹配到的设备数量（包含房间分配设备、家庭直属未分组设备以及指定 HomeId 的设备）
             var homeDids = new HashSet<string>();
+            foreach (var did in h.Dids)
+            {
+                homeDids.Add(did);
+                int dotIdx = did.IndexOf('.');
+                if (dotIdx > 0) homeDids.Add(did[..dotIdx]);
+            }
             foreach (var r in h.Rooms)
             {
                 foreach (var rdid in r.Dids)
@@ -542,12 +548,14 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
                     if (dotIdx > 0) homeDids.Add(rdid[..dotIdx]);
                 }
             }
-            int count = rawDevices.Count(d => homeDids.Contains(d.Did));
+            int count = rawDevices.Count(d => homeDids.Contains(d.Did) || d.HomeId == h.Id);
+
+            string displayName = h.IsShared ? $"{h.Name} (共享)" : h.Name;
 
             AvailableHomes.Add(new HomeCategoryItem
             {
                 Id = h.Id,
-                Name = h.Name,
+                Name = displayName,
                 RoomCount = h.Rooms.Count,
                 DeviceCount = count,
                 RawHome = h
@@ -585,6 +593,13 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         if (rawHome != null)
         {
+            foreach (var did in rawHome.Dids)
+            {
+                homeDids.Add(did);
+                int dotIdx = did.IndexOf('.');
+                if (dotIdx > 0) homeDids.Add(did[..dotIdx]);
+            }
+
             foreach (var r in rawHome.Rooms)
             {
                 foreach (var rdid in r.Dids)
@@ -612,15 +627,17 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         }
 
         // 筛选归属于当前家庭的设备
-        var currentHomeDevices = _allRawDevices.Where(d => homeDids.Count == 0 || homeDids.Contains(d.Did)).ToList();
+        var currentHomeDevices = _allRawDevices.Where(d => 
+            homeDids.Contains(d.Did) || 
+            (!string.IsNullOrEmpty(rawHome?.Id) && d.HomeId == rawHome.Id)).ToList();
         
         // 若为主家庭，将未分配房间的穿戴设备（如手环等）也收入“全部”
         if (SelectedHome == AvailableHomes.FirstOrDefault())
         {
             var unassigned = _allRawDevices.Where(d => !AvailableHomes.Skip(1).Any(other =>
             {
-                var otherDids = other.RawHome.Rooms.SelectMany(r => r.Dids).ToHashSet();
-                return otherDids.Contains(d.Did) || otherDids.Any(x => x.StartsWith(d.Did + "."));
+                var otherDids = other.RawHome.Rooms.SelectMany(r => r.Dids).Concat(other.RawHome.Dids).ToHashSet();
+                return otherDids.Contains(d.Did) || otherDids.Any(x => x.StartsWith(d.Did + ".")) || d.HomeId == other.Id;
             }) && !currentHomeDevices.Contains(d)).ToList();
 
             currentHomeDevices.AddRange(unassigned);
