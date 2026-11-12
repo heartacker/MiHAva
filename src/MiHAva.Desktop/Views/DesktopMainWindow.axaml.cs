@@ -14,7 +14,16 @@ public partial class DesktopMainWindow : Window
 
     public DesktopMainWindow()
     {
-        InitializeComponent();
+        InitializeComponent(loadXaml: false);
+        Title = "米家桌面端 - MiHome Avalonia (AtomUI)";
+        Width = 1100;
+        Height = 740;
+        MinWidth = 800;
+        MinHeight = 520;
+        WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        RootContent = new ContentControl();
+        Content = RootContent;
+
         _ = InitializeAppContentAsync();
 
         // 拦截右上角关闭按钮，平滑最小化至系统托盘常驻
