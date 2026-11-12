@@ -11,7 +11,7 @@
             <Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="CornerRadius" Value="18" />
-            <Setter Property="Padding" Value="16,12" />
+            <Setter Property="Padding" Value="16,14" />
             <Setter Property="Transitions">
                 <Transitions>
                     <BrushTransition Property="Background" Duration="0:0:0.2" />
@@ -20,7 +20,7 @@
             </Setter>
         </Style>
         <Style Selector="Border.envCapsule:pointerover">
-            <Setter Property="RenderTransform" Value="scale(1.02)" />
+            <Setter Property="RenderTransform" Value="scale(1.015)" />
         </Style>
 
         <!-- 场景大磁贴卡片样式（贴合截图 2 列圆角卡片） -->
@@ -41,21 +41,30 @@
             </Setter>
         </Style>
         <Style Selector="Button.sceneTile:pointerover">
-            <Setter Property="RenderTransform" Value="scale(1.015)" />
+            <Setter Property="RenderTransform" Value="scale(1.01)" />
             <Setter Property="Background" Value="{DynamicResource SystemChromeMediumColor}" />
         </Style>
 
         <!-- 房间聚合小卡片样式（贴合截图中的大房间、阳台卡片） -->
         <Style Selector="Border.roomSummaryCard">
-            <Setter Property="Width" Value="168" />
-            <Setter Property="Height" Value="154" />
-            <Setter Property="Margin" Value="0,0,12,0" />
+            <Setter Property="Width" Value="176" />
+            <Setter Property="Height" Value="156" />
+            <Setter Property="Margin" Value="0,4,14,6" />
             <Setter Property="Padding" Value="14,14" />
             <Setter Property="CornerRadius" Value="18" />
             <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
             <Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="BoxShadow" Value="0 4 12 0 #0D000000" />
+            <Setter Property="BoxShadow" Value="0 4 14 0 #10000000" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1" />
+                    <BrushTransition Property="Background" Duration="0:0:0.2" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Border.roomSummaryCard:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.02)" />
         </Style>
 
         <!-- 房间内全开/全关操作药丸按钮 -->
@@ -88,58 +97,59 @@
         </Style>
     </UserControl.Styles>
 
-    <ScrollViewer Padding="20,16">
-        <StackPanel Spacing="22" MaxWidth="960" HorizontalAlignment="Stretch">
+    <!-- 移除定死宽度限制，全宽自适应填充窗口 -->
+    <ScrollViewer Padding="24,18" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Spacing="24" HorizontalAlignment="Stretch">
             
-            <!-- 1. 顶部全屋环境状态三大胶囊（贴合截图顶部：温度区间、湿度区间、空气品质） -->
-            <Grid ColumnDefinitions="*,*,*">
+            <!-- 1. 顶部全屋环境状态三大胶囊（贴合截图顶部：温度区间、湿度区间、空气品质，自适应撑满） -->
+            <Grid ColumnDefinitions="*,*,*" HorizontalAlignment="Stretch">
                 
                 <!-- 温度胶囊 -->
                 <Border Grid.Column="0" Classes="envCapsule" Margin="0,0,8,0">
                     <StackPanel Spacing="4" HorizontalAlignment="Center">
-                        <TextBlock Text="🌡️" FontSize="18" HorizontalAlignment="Center"/>
+                        <TextBlock Text="🌡️" FontSize="20" HorizontalAlignment="Center"/>
                         <TextBlock Text="{Binding EnvironmentTempRange}" 
-                                   FontSize="15" 
+                                   FontSize="16" 
                                    FontWeight="Bold" 
                                    HorizontalAlignment="Center"/>
-                        <TextBlock Text="室内温度" FontSize="10" Foreground="{DynamicResource SystemBaseMediumColor}" HorizontalAlignment="Center"/>
+                        <TextBlock Text="室内温度" FontSize="11" Foreground="{DynamicResource SystemBaseMediumColor}" HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Border>
 
                 <!-- 湿度胶囊 -->
                 <Border Grid.Column="1" Classes="envCapsule" Margin="4,0,4,0">
                     <StackPanel Spacing="4" HorizontalAlignment="Center">
-                        <TextBlock Text="💧" FontSize="18" HorizontalAlignment="Center"/>
+                        <TextBlock Text="💧" FontSize="20" HorizontalAlignment="Center"/>
                         <TextBlock Text="{Binding EnvironmentHumidityRange}" 
-                                   FontSize="15" 
+                                   FontSize="16" 
                                    FontWeight="Bold" 
                                    HorizontalAlignment="Center"/>
-                        <TextBlock Text="室内湿度" FontSize="10" Foreground="{DynamicResource SystemBaseMediumColor}" HorizontalAlignment="Center"/>
+                        <TextBlock Text="室内湿度" FontSize="11" Foreground="{DynamicResource SystemBaseMediumColor}" HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Border>
 
                 <!-- 空气品质胶囊 -->
                 <Border Grid.Column="2" Classes="envCapsule" Margin="8,0,0,0">
                     <StackPanel Spacing="4" HorizontalAlignment="Center">
-                        <TextBlock Text="🍃" FontSize="18" HorizontalAlignment="Center"/>
+                        <TextBlock Text="🍃" FontSize="20" HorizontalAlignment="Center"/>
                         <TextBlock Text="{Binding EnvironmentAirQuality}" 
-                                   FontSize="15" 
+                                   FontSize="16" 
                                    FontWeight="Bold" 
                                    HorizontalAlignment="Center"/>
-                        <TextBlock Text="空气品质" FontSize="10" Foreground="{DynamicResource SystemBaseMediumColor}" HorizontalAlignment="Center"/>
+                        <TextBlock Text="空气品质" FontSize="11" Foreground="{DynamicResource SystemBaseMediumColor}" HorizontalAlignment="Center"/>
                     </StackPanel>
                 </Border>
             </Grid>
 
-            <!-- 2. 全屋快捷场景双列卡片（贴合截图中间网格：开关所有灯带、离家模式、回家模式、明亮模式） -->
-            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto">
+            <!-- 2. 全屋快捷场景双列卡片（贴合截图中间网格：全宽自适应，手感流畅） -->
+            <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" HorizontalAlignment="Stretch">
                 
                 <!-- 卡片 1：开关所有灯带 -->
                 <Button Grid.Row="0" Grid.Column="0" Classes="sceneTile" Margin="0,0,6,6"
                         Command="{Binding TurnOffAllLightsCommand}" ToolTip.Tip="点击一键切换全屋灯带">
                     <Grid ColumnDefinitions="Auto,*">
-                        <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18" Background="#2010B981" Margin="0,0,12,0">
-                            <TextBlock Text="✨" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border Grid.Column="0" Width="40" Height="40" CornerRadius="20" Background="#2010B981" Margin="0,0,12,0">
+                            <TextBlock Text="✨" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock Text="开关所有灯带" FontSize="14" FontWeight="Bold"/>
@@ -152,8 +162,8 @@
                 <Button Grid.Row="0" Grid.Column="1" Classes="sceneTile" Margin="6,0,0,6"
                         Command="{Binding LeaveHomeSceneCommand}" ToolTip.Tip="关闭全屋非必要设备">
                     <Grid ColumnDefinitions="Auto,*">
-                        <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18" Background="#203B82F6" Margin="0,0,12,0">
-                            <TextBlock Text="🚪" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border Grid.Column="0" Width="40" Height="40" CornerRadius="20" Background="#203B82F6" Margin="0,0,12,0">
+                            <TextBlock Text="🚪" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock Text="离家模式" FontSize="14" FontWeight="Bold"/>
@@ -166,8 +176,8 @@
                 <Button Grid.Row="1" Grid.Column="0" Classes="sceneTile" Margin="0,6,6,0"
                         Command="{Binding ArriveHomeSceneCommand}" ToolTip.Tip="开启常用空间照明">
                     <Grid ColumnDefinitions="Auto,*">
-                        <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18" Background="#20F59E0B" Margin="0,0,12,0">
-                            <TextBlock Text="🛋️" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border Grid.Column="0" Width="40" Height="40" CornerRadius="20" Background="#20F59E0B" Margin="0,0,12,0">
+                            <TextBlock Text="🛋️" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock Text="回家模式" FontSize="14" FontWeight="Bold"/>
@@ -180,8 +190,8 @@
                 <Button Grid.Row="1" Grid.Column="1" Classes="sceneTile" Margin="6,6,0,0"
                         Command="{Binding TurnOnAllSceneCommand}" ToolTip.Tip="点亮全部主照明">
                     <Grid ColumnDefinitions="Auto,*">
-                        <Border Grid.Column="0" Width="36" Height="36" CornerRadius="18" Background="#20EF4444" Margin="0,0,12,0">
-                            <TextBlock Text="☀️" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <Border Grid.Column="0" Width="40" Height="40" CornerRadius="20" Background="#20EF4444" Margin="0,0,12,0">
+                            <TextBlock Text="☀️" FontSize="20" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                         </Border>
                         <StackPanel Grid.Column="1" VerticalAlignment="Center">
                             <TextBlock Text="明亮模式" FontSize="14" FontWeight="Bold"/>
@@ -192,10 +202,10 @@
             </Grid>
 
             <!-- 3. 六大场景分类汇总板块列表 (照明、灯带、窗帘、开关、环境温湿度、安防) -->
-            <ItemsControl ItemsSource="{Binding SceneCategories}">
+            <ItemsControl ItemsSource="{Binding SceneCategories}" HorizontalAlignment="Stretch">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:SceneCategorySummaryGroup">
-                        <StackPanel Margin="0,0,0,24" Spacing="10">
+                        <StackPanel Margin="0,0,0,26" Spacing="10" HorizontalAlignment="Stretch">
                             
                             <!-- 分类标题栏（可点击标题进入此类的详细看每个房间情况，右侧带一键批量控制） -->
                             <Grid ColumnDefinitions="Auto,*,Auto">
@@ -246,9 +256,10 @@
                                 </StackPanel>
                             </Grid>
 
-                            <!-- 横向卡片流（按房间分组汇总，贴合截图） -->
-                            <ScrollViewer HorizontalScrollBarVisibility="Auto" 
-                                          VerticalScrollBarVisibility="Disabled">
+                            <!-- 横向卡片流（隐藏突兀的原生重叠滚动条，并预留充足的底部间距防遮挡） -->
+                            <ScrollViewer HorizontalScrollBarVisibility="Hidden" 
+                                          VerticalScrollBarVisibility="Disabled"
+                                          Padding="0,2,0,10">
                                 <ItemsControl ItemsSource="{Binding RoomGroups}">
                                     <ItemsControl.ItemsPanel>
                                         <ItemsPanelTemplate>
@@ -295,12 +306,12 @@
                                                     <Border Grid.Row="2" 
                                                             IsVisible="{Binding !SupportsBatchSwitch}"
                                                             Background="{DynamicResource SystemBaseLowColor}"
-                                                            CornerRadius="10"
-                                                            Padding="8,6">
+                                                            CornerRadius="12"
+                                                            Padding="10,8">
                                                         <TextBlock Text="{Binding StatusText}" 
-                                                                   FontSize="11" 
-                                                                   FontWeight="SemiBold"
-                                                                   Foreground="{DynamicResource SystemBaseHighColor}"
+                                                                   FontSize="12" 
+                                                                   FontWeight="Bold"
+                                                                   Foreground="#10B981"
                                                                    TextAlignment="Center"
                                                                    TextWrapping="Wrap"/>
                                                     </Border>

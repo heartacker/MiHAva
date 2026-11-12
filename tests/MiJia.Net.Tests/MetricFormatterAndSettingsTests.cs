@@ -10,6 +10,8 @@ public class MetricFormatterAndSettingsTests
     [InlineData("temperature", 283.0, "28.3°C")]
     [InlineData("室内温度", 25.5, "25.5°C")]
     [InlineData("temperature", -15.0, "-15.0°C")]
+    [InlineData("color-temperature", 4700.0, "4700K")]
+    [InlineData("色温", 4700.0, "4700K")]
     [InlineData("relative-humidity", 683.0, "68%")]
     [InlineData("当前湿度", 55.0, "55%")]
     [InlineData("battery-level", 92.4, "92%")]
@@ -21,6 +23,22 @@ public class MetricFormatterAndSettingsTests
     {
         string actual = MetricFormatter.FormatMetric(propName, value);
         Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData("color-temperature", false)]
+    [InlineData("Color Temperature", false)]
+    [InlineData("色温", false)]
+    [InlineData("target-temperature", false)]
+    [InlineData("water-temperature", false)]
+    [InlineData("temperature", true)]
+    [InlineData("ambient-temperature", true)]
+    [InlineData("indoor-temperature", true)]
+    [InlineData("室温", true)]
+    [InlineData("当前温度", true)]
+    public void IsEnvironmentTemperature_ShouldDistinguishProperly(string propName, bool expected)
+    {
+        Assert.Equal(expected, MetricFormatter.IsEnvironmentTemperature(propName));
     }
 
     [Fact]

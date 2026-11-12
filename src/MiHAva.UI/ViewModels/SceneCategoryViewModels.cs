@@ -65,9 +65,38 @@ public partial class SceneCategoryRoomGroup : ObservableObject
                 StatusText = active == 0 ? "全关着" : $"开启 {active} 处";
                 break;
             case SceneCategoryType.Environment:
-                // 汇总本房间的环境读数
-                var metrics = Devices.Where(d => !string.IsNullOrEmpty(d.MetricSubtitle)).Select(d => d.MetricSubtitle).ToList();
-                StatusText = metrics.Count > 0 ? metrics[0] : (total > 0 ? $"{total} 件设备" : "无数据");
+                // 汇总本房间真实环境读数
+                var envDevices = Devices.Where(d => d.EnvironmentTemperature.HasValue || d.EnvironmentHumidity.HasValue).ToList();
+                if (envDevices.Count > 0)
+                {
+                    var temps = envDevices.Where(d => d.EnvironmentTemperature.HasValue).Select(d => d.EnvironmentTemperature!.Value).ToList();
+                    var hums = envDevices.Where(d => d.EnvironmentHumidity.HasValue).Select(d => d.EnvironmentHumidity!.Value).ToList();
+
+                    string tStr = temps.Count > 0 ? $"{temps.Average():F1}°C" : "";
+                    string hStr = hums.Count > 0 ? $"{Math.Round(hums.Average()):F0}%" : "";
+
+                    if (!string.IsNullOrEmpty(tStr) && !string.IsNullOrEmpty(hStr))
+                    {
+                        StatusText = $"{tStr} · {hStr}";
+                    }
+                    else if (!string.IsNullOrEmpty(tStr))
+                    {
+                        StatusText = tStr;
+                    }
+                    else if (!string.IsNullOrEmpty(hStr))
+                    {
+                        StatusText = hStr;
+                    }
+                    else
+                    {
+                        StatusText = $"{total} 件设备";
+                    }
+                }
+                else
+                {
+                    var anyMetric = Devices.FirstOrDefault(d => !string.IsNullOrEmpty(d.MetricSubtitle))?.MetricSubtitle;
+                    StatusText = anyMetric ?? (total > 0 ? $"{total} 件设备" : "无数据");
+                }
                 break;
             case SceneCategoryType.Security:
                 StatusText = total > 0 ? "正常布防" : "无设备";
@@ -209,8 +238,10 @@ public partial class SceneCategorySummaryGroup : ObservableObject
                 m.Contains("switch") || m.Contains("plug") || m.Contains("socket") || n.Contains("开关") || n.Contains("插座") || n.Contains("插头"),
 
             SceneCategoryType.Environment => 
-                card.MetricSensors.Count > 0 ||
-                m.Contains("sensor") || m.Contains("temp") || m.Contains("humid") || m.Contains("air") || m.Contains("fan") ||
+                card.EnvironmentTemperature.HasValue || card.EnvironmentHumidity.HasValue ||
+                (card.MetricSensors.Count > 0 && !m.Contains("light") && !m.Contains("lamp") && !n.Contains("灯")) ||
+                (m.Contains("sensor") && !m.Contains("motion") && !m.Contains("magnet")) ||
+                m.Contains("temp") || m.Contains("humid") || m.Contains("air") || m.Contains("fan") ||
                 n.Contains("温湿度") || n.Contains("温度") || n.Contains("湿度") || n.Contains("空调") || n.Contains("加湿") || n.Contains("净化") || n.Contains("风扇"),
 
             SceneCategoryType.Security => 

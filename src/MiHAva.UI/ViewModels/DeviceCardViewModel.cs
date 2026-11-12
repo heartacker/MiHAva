@@ -40,6 +40,9 @@ public partial class DeviceCardViewModel : ObservableObject
     [ObservableProperty]
     private string _metricSubtitle = string.Empty;
 
+    public double? EnvironmentTemperature { get; private set; }
+    public double? EnvironmentHumidity { get; private set; }
+
     public string StatusSummaryText
     {
         get
@@ -174,8 +177,8 @@ public partial class DeviceCardViewModel : ObservableObject
                     OnPropertyChanged(nameof(IsActiveStatus));
                 }
                 else if (p.CanRead && 
-                        (p.Description.Contains("temperature", StringComparison.OrdinalIgnoreCase) ||
-                         p.Description.Contains("humidity", StringComparison.OrdinalIgnoreCase) ||
+                        (MetricFormatter.IsEnvironmentTemperature(p.Description) ||
+                         MetricFormatter.IsHumidity(p.Description) ||
                          p.Description.Contains("power", StringComparison.OrdinalIgnoreCase) ||
                          p.Description.Contains("pm2.5", StringComparison.OrdinalIgnoreCase)))
                 {
@@ -213,6 +216,27 @@ public partial class DeviceCardViewModel : ObservableObject
             {
                 if (double.TryParse(value.ToString(), out double num))
                 {
+                    if (MetricFormatter.IsEnvironmentTemperature(sensor.desc))
+                    {
+                        double realT = num;
+                        if (Math.Abs(realT) > 60 && Math.Abs(realT) < 1000) realT /= 10.0;
+                        else if (Math.Abs(realT) >= 1000) realT /= 100.0;
+                        if (realT >= -30 && realT <= 60)
+                        {
+                            EnvironmentTemperature = realT;
+                        }
+                    }
+                    else if (MetricFormatter.IsHumidity(sensor.desc))
+                    {
+                        double realH = num;
+                        if (realH > 100 && realH < 1000) realH /= 10.0;
+                        else if (realH >= 1000) realH /= 100.0;
+                        if (realH >= 0 && realH <= 100)
+                        {
+                            EnvironmentHumidity = realH;
+                        }
+                    }
+
                     string formatted = MetricFormatter.FormatMetric(sensor.desc, num, sensor.unit);
                     _metricValues[(siid, piid)] = formatted;
                     MetricSubtitle = string.Join(" · ", _metricValues.Values);

@@ -301,27 +301,17 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     private void CalculateEnvironmentRanges()
     {
-        var temps = new List<double>();
-        var hums = new List<double>();
+        var temps = _allDeviceCards
+            .Where(c => c.IsOnline && c.EnvironmentTemperature.HasValue)
+            .Select(c => c.EnvironmentTemperature!.Value)
+            .Where(t => t >= -30 && t <= 60)
+            .ToList();
 
-        foreach (var card in _allDeviceCards.Where(c => c.IsOnline))
-        {
-            if (!string.IsNullOrEmpty(card.MetricSubtitle))
-            {
-                var parts = card.MetricSubtitle.Split('·', StringSplitOptions.TrimEntries);
-                foreach (var part in parts)
-                {
-                    if (part.EndsWith("°C"))
-                    {
-                        if (double.TryParse(part.Replace("°C", "").Trim(), out double t)) temps.Add(t);
-                    }
-                    else if (part.EndsWith("%"))
-                    {
-                        if (double.TryParse(part.Replace("%", "").Trim(), out double h)) hums.Add(h);
-                    }
-                }
-            }
-        }
+        var hums = _allDeviceCards
+            .Where(c => c.IsOnline && c.EnvironmentHumidity.HasValue)
+            .Select(c => c.EnvironmentHumidity!.Value)
+            .Where(h => h >= 0 && h <= 100)
+            .ToList();
 
         if (temps.Count > 0)
         {
