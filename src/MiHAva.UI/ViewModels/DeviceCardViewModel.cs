@@ -16,7 +16,7 @@ public partial class DeviceCardViewModel : ObservableObject
     private readonly IDeviceJobChannel _jobChannel;
     private readonly IDeviceStateCoordinator _coordinator;
 
-    public DeviceInfo Device { get; }
+    public DeviceInfo Device { get; private set; }
     public string OriginalCloudName { get; }
 
     [ObservableProperty]
@@ -146,6 +146,15 @@ public partial class DeviceCardViewModel : ObservableObject
     public void UpdateName(string newName)
     {
         Name = newName;
+    }
+
+    public void UpdateDeviceInfo(DeviceInfo dev)
+    {
+        Device = dev;
+        IsOnline = dev.IsOnline;
+        RoomName = dev.RoomName ?? "默认房间";
+        var custom = DeviceSettingsService.GetCustomName(dev.Did);
+        Name = !string.IsNullOrWhiteSpace(custom) ? custom : (string.IsNullOrWhiteSpace(dev.Name) ? dev.Model : dev.Name);
     }
 
     /// <summary>

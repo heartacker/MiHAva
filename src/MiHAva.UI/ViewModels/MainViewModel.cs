@@ -44,6 +44,45 @@ public sealed class HomeCategoryItem
     public override string ToString() => Name;
 }
 
+public enum DeviceLayoutMode
+{
+    Flat,       // 平铺摆放
+    Category,   // 分类摆放
+    Room        // 分房间摆放（全屋模式）
+}
+
+/// <summary>
+/// 按设备品类分组的区块（支持平铺/分类排布，如灯、灯带、音箱等）
+/// </summary>
+public sealed class CategorySectionGroup
+{
+    public DeviceCategoryType CategoryType { get; init; }
+    public string CategoryName { get; init; } = string.Empty;
+    public string Icon { get; init; } = string.Empty;
+    public int DeviceCount => Devices.Count;
+    public int ActiveCount => Devices.Count(d => d.IsOnline && d.IsSwitchOn);
+    public string SummaryText => $"{DeviceCount} 台设备" + (ActiveCount > 0 ? $" · {ActiveCount} 台开启" : "");
+    public ObservableCollection<DeviceCardViewModel> Devices { get; } = [];
+}
+
+/// <summary>
+/// 设备品类快速筛选胶囊项
+/// </summary>
+public sealed partial class DeviceCategoryFilterItem : ObservableObject
+{
+    public DeviceCategoryType? CategoryType { get; init; }
+    public string Name { get; init; } = string.Empty;
+    public string Icon { get; init; } = string.Empty;
+
+    [ObservableProperty]
+    private int _count;
+
+    [ObservableProperty]
+    private bool _isSelected;
+
+    public string HeaderText => string.IsNullOrEmpty(Icon) ? $"{Name} ({Count})" : $"{Icon} {Name} ({Count})";
+}
+
 /// <summary>
 /// 按房间分组的设备区块（米家经典“全部”视图分段展示）
 /// </summary>
@@ -151,7 +190,64 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     public ObservableCollection<RoomCategoryItem> Rooms { get; } = [];
     public ObservableCollection<DeviceCardViewModel> FilteredDevices { get; } = [];
     public ObservableCollection<RoomSectionGroup> RoomSections { get; } = [];
+    public ObservableCollection<CategorySectionGroup> CategorySections { get; } = [];
+    public ObservableCollection<DeviceCategoryFilterItem> CategoryFilters { get; } = [];
     public XiaoAiCommandViewModel XiaoAiVm { get; }
+
+    [ObservableProperty]
+    private DeviceLayoutMode _currentLayoutMode = DeviceLayoutMode.Category;
+
+    public bool IsFlatLayout => CurrentLayoutMode == DeviceLayoutMode.Flat;
+    public bool IsCategoryLayout => CurrentLayoutMode == DeviceLayoutMode.Category;
+    public bool IsRoomLayout => CurrentLayoutMode == DeviceLayoutMode.Room;
+
+    [ObservableProperty]
+    private DeviceCategoryFilterItem? _selectedCategoryFilter;
+
+    private bool _isUpdatingCategoryFilters;
+
+    partial void OnSelectedCategoryFilterChanged(DeviceCategoryFilterItem? value)
+    {
+        if (_isUpdatingCategoryFilters) return;
+        foreach (var cf in CategoryFilters)
+        {
+            cf.IsSelected = (value != null && cf.CategoryType == value.CategoryType);
+        }
+        ApplyFilter();
+    }
+
+    [RelayCommand]
+    public void SelectCategoryFilter(DeviceCategoryFilterItem item)
+    {
+        SelectedCategoryFilter = item;
+    }
+
+    [RelayCommand]
+    public void SetFlatLayout()
+    {
+        CurrentLayoutMode = DeviceLayoutMode.Flat;
+        OnPropertyChanged(nameof(IsFlatLayout));
+        OnPropertyChanged(nameof(IsCategoryLayout));
+        OnPropertyChanged(nameof(IsRoomLayout));
+    }
+
+    [RelayCommand]
+    public void SetCategoryLayout()
+    {
+        CurrentLayoutMode = DeviceLayoutMode.Category;
+        OnPropertyChanged(nameof(IsFlatLayout));
+        OnPropertyChanged(nameof(IsCategoryLayout));
+        OnPropertyChanged(nameof(IsRoomLayout));
+    }
+
+    [RelayCommand]
+    public void SetRoomLayout()
+    {
+        CurrentLayoutMode = DeviceLayoutMode.Room;
+        OnPropertyChanged(nameof(IsFlatLayout));
+        OnPropertyChanged(nameof(IsCategoryLayout));
+        OnPropertyChanged(nameof(IsRoomLayout));
+    }
 
     [RelayCommand]
     public void ToggleHomeSwitcher()
@@ -179,6 +275,13 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
         foreach (var r in Rooms)
         {
             r.IsSelected = (value != null && r.Id == value.Id);
+        }
+        if (value != null && value.Id != "__ALL__" && CurrentLayoutMode == DeviceLayoutMode.Room)
+        {
+            CurrentLayoutMode = DeviceLayoutMode.Category;
+            OnPropertyChanged(nameof(IsFlatLayout));
+            OnPropertyChanged(nameof(IsCategoryLayout));
+            OnPropertyChanged(nameof(IsRoomLayout));
         }
         ApplyFilter();
         UpdateCurrentTabInfo();
@@ -691,6 +794,7 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
         XiaoAiVm.RefreshSpeakers(currentHomeDevices);
 
+        var existingCards = _allDeviceCards.ToDictionary(c => c.Device.Did, c => c);
         _allDeviceCards.Clear();
         foreach (var dev in currentHomeDevices)
         {
@@ -703,15 +807,25 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
                 dev.RoomName = "未分配";
             }
 
-            var card = new DeviceCardViewModel(dev, _jobChannel, _coordinator);
-            card.OpenDetailRequested += OnCardOpenDetailRequested;
-            _allDeviceCards.Add(card);
+            if (existingCards.TryGetValue(dev.Did, out var card))
+            {
+                card.UpdateDeviceInfo(dev);
+                _allDeviceCards.Add(card);
+            }
+            else
+            {
+                card = new DeviceCardViewModel(dev, _jobChannel, _coordinator);
+                card.OpenDetailRequested += OnCardOpenDetailRequested;
+                _allDeviceCards.Add(card);
+            }
         }
 
         _ = Task.Run(async () =>
         {
             foreach (var card in _allDeviceCards)
             {
+                if (card.SpecInstance != null) continue;
+
                 MiotSpecInstance? spec = null;
                 if (!string.IsNullOrEmpty(card.Device.SpecType))
                 {
@@ -736,41 +850,121 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
 
     partial void OnSearchKeywordChanged(string value) => ApplyFilter();
 
+    private void UpdateCategoryFilters(List<DeviceCardViewModel> baseCards)
+    {
+        if (_isUpdatingCategoryFilters) return;
+        _isUpdatingCategoryFilters = true;
+        try
+        {
+            var currentType = SelectedCategoryFilter?.CategoryType;
+            CategoryFilters.Clear();
+
+            var allFilter = new DeviceCategoryFilterItem
+            {
+                CategoryType = null,
+                Name = "全部",
+                Icon = "📦",
+                Count = baseCards.Count,
+                IsSelected = currentType == null
+            };
+            CategoryFilters.Add(allFilter);
+
+            var allTypes = Enum.GetValues<DeviceCategoryType>();
+            foreach (var type in allTypes)
+            {
+                int count = baseCards.Count(d => DeviceCategoryClassifier.GetCategory(d) == type);
+                if (count > 0)
+                {
+                    CategoryFilters.Add(new DeviceCategoryFilterItem
+                    {
+                        CategoryType = type,
+                        Name = DeviceCategoryClassifier.GetCategoryName(type),
+                        Icon = DeviceCategoryClassifier.GetCategoryIcon(type),
+                        Count = count,
+                        IsSelected = currentType == type
+                    });
+                }
+            }
+
+            var match = CategoryFilters.FirstOrDefault(cf => cf.CategoryType == currentType);
+            var target = match ?? allFilter;
+            target.IsSelected = true;
+            SelectedCategoryFilter = target;
+        }
+        finally
+        {
+            _isUpdatingCategoryFilters = false;
+        }
+    }
+
     private void ApplyFilter()
     {
-        var query = _allDeviceCards.AsEnumerable();
+        var baseQuery = _allDeviceCards.AsEnumerable();
 
         if (HideOfflineDevices)
         {
-            query = query.Where(d => d.IsOnline);
+            baseQuery = baseQuery.Where(d => d.IsOnline);
         }
 
         if (SelectedRoom != null && SelectedRoom.Id != "__ALL__" && SelectedRoom.Id != "__SCENE__")
         {
-            query = query.Where(d => d.RoomName == SelectedRoom.Name);
+            baseQuery = baseQuery.Where(d => d.RoomName == SelectedRoom.Name);
         }
 
         if (!string.IsNullOrWhiteSpace(SearchKeyword))
         {
             var kw = SearchKeyword.Trim();
-            query = query.Where(d =>
+            baseQuery = baseQuery.Where(d =>
                 d.Name.Contains(kw, StringComparison.OrdinalIgnoreCase) ||
                 d.Device.Model.Contains(kw, StringComparison.OrdinalIgnoreCase) ||
                 d.RoomName.Contains(kw, StringComparison.OrdinalIgnoreCase));
         }
 
-        var list = query.ToList();
+        var baseList = baseQuery.ToList();
 
+        // 动态刷新当前作用域内的品类筛选胶囊与设备统计
+        UpdateCategoryFilters(baseList);
+
+        // 如果用户选定了特定品类（如“灯”或“灯带”或“音响”），进行品类过滤
+        var filteredQuery = baseList.AsEnumerable();
+        if (SelectedCategoryFilter?.CategoryType != null)
+        {
+            var filterType = SelectedCategoryFilter.CategoryType.Value;
+            filteredQuery = filteredQuery.Where(d => DeviceCategoryClassifier.GetCategory(d) == filterType);
+        }
+
+        // 建立严格确定的排序字典（消除刷新导致设备位置跳跃变化的痛点！）
+        var roomOrderMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        if (SelectedHome?.RawHome != null)
+        {
+            int rIdx = 0;
+            foreach (var r in SelectedHome.RawHome.Rooms)
+            {
+                roomOrderMap[r.Name] = rIdx++;
+            }
+        }
+
+        int GetRoomOrder(string rName) => roomOrderMap.TryGetValue(rName, out var idx) ? idx : 999;
+
+        // 确定性稳定排序：房间顺序 -> 品类权重 -> 设备名（忽略大小写拼音） -> DID 兜底
+        var sortedList = filteredQuery
+            .OrderBy(d => GetRoomOrder(d.RoomName))
+            .ThenBy(d => (int)DeviceCategoryClassifier.GetCategory(d))
+            .ThenBy(d => d.Name, StringComparer.CurrentCultureIgnoreCase)
+            .ThenBy(d => d.Device.Did)
+            .ToList();
+
+        // 1. 平铺设备列表
         FilteredDevices.Clear();
-        foreach (var item in list)
+        foreach (var item in sortedList)
         {
             FilteredDevices.Add(item);
         }
 
-        // 重新构建分房间区块（供分组呈现）
+        // 2. 重新构建分房间区块（按房间分组呈现）
         RoomSections.Clear();
-        var grouped = list.GroupBy(d => d.RoomName);
-        foreach (var g in grouped)
+        var roomGrouped = sortedList.GroupBy(d => d.RoomName);
+        foreach (var g in roomGrouped)
         {
             var section = new RoomSectionGroup { RoomName = g.Key };
             foreach (var card in g)
@@ -778,6 +972,26 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
                 section.Devices.Add(card);
             }
             RoomSections.Add(section);
+        }
+
+        // 3. 构建分品类区块（按灯/灯带/音箱/窗帘/开关等品类分组呈现）
+        CategorySections.Clear();
+        var categoryGrouped = sortedList.GroupBy(d => DeviceCategoryClassifier.GetCategory(d))
+                                         .OrderBy(g => (int)g.Key);
+        foreach (var g in categoryGrouped)
+        {
+            var catType = g.Key;
+            var catSection = new CategorySectionGroup
+            {
+                CategoryType = catType,
+                CategoryName = DeviceCategoryClassifier.GetCategoryName(catType),
+                Icon = DeviceCategoryClassifier.GetCategoryIcon(catType)
+            };
+            foreach (var card in g)
+            {
+                catSection.Devices.Add(card);
+            }
+            CategorySections.Add(catSection);
         }
     }
 

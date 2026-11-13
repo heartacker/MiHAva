@@ -74,6 +74,55 @@
             <Setter Property="Opacity" Value="1.0" />
             <Setter Property="RenderTransform" Value="scale(1.1)" />
         </Style>
+
+        <!-- 布局模式切换小按钮 (平铺 / 分类 / 分房间) -->
+        <Style Selector="Button.layoutTabBtn">
+            <Setter Property="Padding" Value="9,4" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Foreground" Value="{DynamicResource SystemBaseMediumColor}" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.12" />
+                    <BrushTransition Property="Foreground" Duration="0:0:0.12" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.layoutTabBtn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
+            <Setter Property="Foreground" Value="{DynamicResource SystemBaseHighColor}" />
+        </Style>
+        <Style Selector="Button.layoutTabBtn.active">
+            <Setter Property="Background" Value="#10B981" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
+
+        <!-- 品类快速筛选胶囊按钮 (全部 / 灯 / 灯带 / 音响等) -->
+        <Style Selector="Button.categoryPillBtn">
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.categoryPillBtn:pointerover">
+            <Setter Property="RenderTransform" Value="scale(1.03)" />
+            <Setter Property="Background" Value="{DynamicResource SystemChromeMediumColor}" />
+        </Style>
+        <Style Selector="Button.categoryPillBtn.selected">
+            <Setter Property="Background" Value="#10B981" />
+            <Setter Property="BorderBrush" Value="#10B981" />
+            <Setter Property="Foreground" Value="White" />
+        </Style>
     </UserControl.Styles>
 
     <Grid>
@@ -455,7 +504,8 @@
                             BorderBrush="{DynamicResource SystemBaseLowColor}"
                             BorderThickness="1">
                         <Grid ColumnDefinitions="*,Auto">
-                            <StackPanel Grid.Column="0" Spacing="2">
+                            <!-- 房间/Tab 标题与概况 -->
+                            <StackPanel Grid.Column="0" Spacing="2" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding CurrentTabTitle}" 
                                            FontSize="16" 
                                            FontWeight="Bold"/>
@@ -464,22 +514,95 @@
                                            Foreground="{DynamicResource SystemBaseMediumColor}"/>
                             </StackPanel>
 
-                            <Border Grid.Column="1" 
-                                    Background="{DynamicResource SystemBaseLowColor}" 
-                                    CornerRadius="10" 
-                                    Padding="8,3"
-                                    VerticalAlignment="Center">
-                                <TextBlock Text="{Binding FilteredDevices.Count, StringFormat='共 {0} 件设备'}" 
-                                           FontSize="11" 
-                                           FontWeight="SemiBold"
-                                           Foreground="{DynamicResource SystemBaseMediumColor}"/>
-                            </Border>
+                            <!-- 右侧：摆放模式切换 (平铺 / 分类 / 分房间) + 设备数量统计 -->
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                                <Border Background="{DynamicResource SystemChromeMediumColor}"
+                                        BorderBrush="{DynamicResource SystemBaseLowColor}"
+                                        BorderThickness="1"
+                                        CornerRadius="8"
+                                        Padding="3">
+                                    <StackPanel Orientation="Horizontal" Spacing="2">
+                                        <!-- 平铺摆放 -->
+                                        <Button Classes="layoutTabBtn"
+                                                Classes.active="{Binding IsFlatLayout}"
+                                                Command="{Binding SetFlatLayoutCommand}"
+                                                ToolTip.Tip="平铺摆放当前所有设备">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock Text="🔲" FontSize="11" VerticalAlignment="Center"/>
+                                                <TextBlock Text="平铺" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+
+                                        <!-- 分类摆放 -->
+                                        <Button Classes="layoutTabBtn"
+                                                Classes.active="{Binding IsCategoryLayout}"
+                                                Command="{Binding SetCategoryLayoutCommand}"
+                                                ToolTip.Tip="按品类（灯、灯带、音箱、窗帘、开关等）分段分类呈现">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock Text="📑" FontSize="11" VerticalAlignment="Center"/>
+                                                <TextBlock Text="分类" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+
+                                        <!-- 分房间（仅在全屋视图下可见） -->
+                                        <Button Classes="layoutTabBtn"
+                                                Classes.active="{Binding IsRoomLayout}"
+                                                Command="{Binding SetRoomLayoutCommand}"
+                                                IsVisible="{Binding IsAllRoomSelected}"
+                                                ToolTip.Tip="按房间分段摆放">
+                                            <StackPanel Orientation="Horizontal" Spacing="4">
+                                                <TextBlock Text="🏠" FontSize="11" VerticalAlignment="Center"/>
+                                                <TextBlock Text="分房间" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="{DynamicResource SystemBaseLowColor}" 
+                                        CornerRadius="10" 
+                                        Padding="8,4" 
+                                        VerticalAlignment="Center">
+                                    <TextBlock Text="{Binding FilteredDevices.Count, StringFormat='共 {0} 件设备'}" 
+                                               FontSize="11" 
+                                               FontWeight="SemiBold" 
+                                               Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                                </Border>
+                            </StackPanel>
                         </Grid>
                     </Border>
 
-                    <!-- 单个房间 Tab 时（或搜索状态下）：直接平铺该房间内的所有设备 -->
+                    <!-- 品类快速筛选胶囊条 (全部 / 💡 灯 / 🌈 灯带 / 🔊 音响 / 🪟 窗帘 / 🔌 开关 / 🌡️ 环境 / 🛡️ 安防) -->
+                    <ScrollViewer HorizontalScrollBarVisibility="Auto" 
+                                  VerticalScrollBarVisibility="Disabled"
+                                  Padding="0,2,0,2">
+                        <ItemsControl ItemsSource="{Binding CategoryFilters}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="8"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:DeviceCategoryFilterItem">
+                                    <Button Command="{Binding $parent[UserControl].((vm:MainViewModel)DataContext).SelectCategoryFilterCommand}"
+                                            CommandParameter="{Binding}"
+                                            Classes="categoryPillBtn"
+                                            Classes.selected="{Binding IsSelected}">
+                                        <StackPanel Orientation="Horizontal" Spacing="5">
+                                            <TextBlock Text="{Binding Icon}" FontSize="12" VerticalAlignment="Center" IsVisible="{Binding Icon, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                                            <TextBlock Text="{Binding Name}" FontSize="12" FontWeight="Medium" VerticalAlignment="Center"/>
+                                            <Border Background="{DynamicResource SystemBaseLowColor}" CornerRadius="8" Padding="5,1" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Count}" FontSize="10" FontWeight="Bold" Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                    <!-- 模式一：平铺摆放（所有匹配设备直接在统一网格中排列） -->
                     <ItemsControl ItemsSource="{Binding FilteredDevices}"
-                                  IsVisible="{Binding !IsAllRoomSelected}">
+                                  IsVisible="{Binding IsFlatLayout}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <WrapPanel Orientation="Horizontal"/>
@@ -492,9 +615,50 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <!-- “全屋” Tab 时：按房间分段分组呈现 -->
+                    <!-- 模式二：分类摆放（按灯、灯带、音箱、窗帘、开关、环境传感等品类分段分组呈现） -->
+                    <ItemsControl ItemsSource="{Binding CategorySections}"
+                                  IsVisible="{Binding IsCategoryLayout}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CategorySectionGroup">
+                                <StackPanel Margin="0,0,0,18" Spacing="8">
+                                    <!-- 品类分段标题栏 -->
+                                    <Grid ColumnDefinitions="Auto,*,Auto" Margin="4,0">
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Icon}" FontSize="16" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding CategoryName}" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/>
+                                            <Border Background="{DynamicResource SystemBaseLowColor}" 
+                                                    CornerRadius="10" 
+                                                    Padding="6,2" 
+                                                    VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding SummaryText}" 
+                                                           FontSize="10" 
+                                                           Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                                            </Border>
+                                        </StackPanel>
+                                        <Separator Grid.Column="1" Margin="14,0" Opacity="0.3"/>
+                                    </Grid>
+
+                                    <!-- 该分类下的设备卡片流 -->
+                                    <ItemsControl ItemsSource="{Binding Devices}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <WrapPanel Orientation="Horizontal"/>
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate x:DataType="vm:DeviceCardViewModel">
+                                                <ctrl:DeviceCardView/>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- 模式三：分房间摆放（全屋视图下按各个房间分段分组呈现） -->
                     <ItemsControl ItemsSource="{Binding RoomSections}"
-                                  IsVisible="{Binding IsAllRoomSelected}">
+                                  IsVisible="{Binding IsRoomLayout}">
                         <ItemsControl.ItemTemplate>
                             <DataTemplate x:DataType="vm:RoomSectionGroup">
                                 <StackPanel Margin="0,0,0,18" Spacing="8">
