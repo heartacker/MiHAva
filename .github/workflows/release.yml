@@ -71,26 +71,31 @@ jobs:
           - name: Windows x64
             os: windows-2022
             rid: win-x64
+            disable_aot: 'false'
             archive_ext: zip
             binary_name: MiHAva.Desktop.exe
           - name: Windows ARM64
             os: windows-2022
             rid: win-arm64
+            disable_aot: 'true'
             archive_ext: zip
             binary_name: MiHAva.Desktop.exe
           - name: Linux x64
             os: ubuntu-latest
             rid: linux-x64
+            disable_aot: 'false'
             archive_ext: tar.gz
             binary_name: MiHAva.Desktop
           - name: macOS x64 (Intel)
-            os: macos-13
+            os: macos-15-intel
             rid: osx-x64
+            disable_aot: 'false'
             archive_ext: tar.gz
             binary_name: MiHAva.Desktop
           - name: macOS ARM64 (Apple Silicon)
             os: macos-latest
             rid: osx-arm64
+            disable_aot: 'false'
             archive_ext: tar.gz
             binary_name: MiHAva.Desktop
     steps:
@@ -110,13 +115,14 @@ jobs:
         with:
           dotnet-version: '11.0.x'
 
-      - name: Publish Native AOT
+      - name: Publish Native AOT / Self-Contained
         shell: bash
         run: |
           dotnet publish src/MiHAva.Desktop/MiHAva.Desktop.csproj \
             -c Release \
             -r ${{ matrix.target.rid }} \
             --self-contained \
+            -p:DisableAOT=${{ matrix.target.disable_aot }} \
             -o publish/${{ matrix.target.rid }}
 
       - name: Package Windows Binary (Zip)
@@ -146,51 +152,6 @@ jobs:
           name: package-${{ matrix.target.rid }}
           path: MiHAva-Desktop-*
           if-no-files-found: error
-
-  build-android:
-    name: Build Android APK
-    needs: check-version
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Setup Java 17
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Install Android Workload
-        run: dotnet workload install android
-
-      - name: Build Android Project
-        run: dotnet build src/MiHAva.Android/MiHAva.Android.csproj -c Release -p:AndroidPackageFormat=apk
-
-      - name: Package Android APK
-        shell: bash
-        run: |
-          TAG="${{ needs.check-version.outputs.tag }}"
-          APK_FILE=$(find src/MiHAva.Android/bin/Release/net8.0-android/ -name "*.apk" | head -n 1)
-          if [ -n "$APK_FILE" ]; then
-            cp "$APK_FILE" "MiHAva-Android-${TAG}.apk"
-            echo "Copied $APK_FILE to MiHAva-Android-${TAG}.apk"
-          fi
-
-      - name: Upload Android Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: package-android
-          path: MiHAva-Android-*.apk
-          if-no-files-found: warn
 
   publish-release:
     name: Publish GitHub Release

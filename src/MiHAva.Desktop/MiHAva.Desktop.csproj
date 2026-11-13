@@ -12,7 +12,9 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
 
     <!-- Native AOT 发布与单文件优化配置 -->
-    <PublishAot>true</PublishAot>
+    <PublishAot Condition="'$(DisableAOT)' != 'true'">true</PublishAot>
+    <PublishTrimmed Condition="'$(DisableAOT)' == 'true'">true</PublishTrimmed>
+    <PublishSingleFile Condition="'$(DisableAOT)' == 'true'">true</PublishSingleFile>
     <StripSymbols>true</StripSymbols>
     <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
     <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
