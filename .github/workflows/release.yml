@@ -49,6 +49,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -67,12 +69,12 @@ jobs:
       matrix:
         target:
           - name: Windows x64
-            os: windows-latest
+            os: windows-2022
             rid: win-x64
             archive_ext: zip
             binary_name: MiHAva.Desktop.exe
           - name: Windows ARM64
-            os: windows-latest
+            os: windows-2022
             rid: win-arm64
             archive_ext: zip
             binary_name: MiHAva.Desktop.exe
@@ -87,13 +89,15 @@ jobs:
             archive_ext: tar.gz
             binary_name: MiHAva.Desktop
           - name: macOS ARM64 (Apple Silicon)
-            os: macos-14
+            os: macos-latest
             rid: osx-arm64
             archive_ext: tar.gz
             binary_name: MiHAva.Desktop
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Install Linux Build Dependencies
         if: runner.os == 'Linux'
@@ -107,6 +111,7 @@ jobs:
           dotnet-version: '11.0.x'
 
       - name: Publish Native AOT
+        shell: bash
         run: |
           dotnet publish src/MiHAva.Desktop/MiHAva.Desktop.csproj \
             -c Release \
@@ -150,6 +155,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
