@@ -1,0 +1,223 @@
+name: Release Native AOT
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Manual release tag (e.g. v1.0.0 or v1.1.0-alpha)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+jobs:
+  check-version:
+    name: Check Version & Release Type
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
+      release_title: ${{ steps.version.outputs.release_title }}
+    steps:
+      - id: version
+        shell: bash
+        run: |
+          INPUT_TAG="${{ github.event.inputs.tag_name }}"
+          TAG="${INPUT_TAG:-${GITHUB_REF_NAME}}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+          # 校验是否为纯三段数字形式（例如 v1.0.0、v2.11.3）
+          # 只有纯数字的是正式版 (Prerelease = false)
+          # 带有后缀（如 v1.1.0-alpha, v1.1.0-beta, v1.1.0-2026.11.13 等）均为预览版 (Prerelease = true)
+          if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "is_prerelease=false" >> "$GITHUB_OUTPUT"
+            echo "release_title=MiHome Avalonia ${TAG}" >> "$GITHUB_OUTPUT"
+            echo "::notice ::Detected Official Release: ${TAG}"
+          else
+            echo "is_prerelease=true" >> "$GITHUB_OUTPUT"
+            echo "release_title=MiHome Avalonia ${TAG} (Pre-release)" >> "$GITHUB_OUTPUT"
+            echo "::notice ::Detected Pre-release: ${TAG}"
+          fi
+
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '11.0.x'
+
+      - name: Run Unit Tests
+        run: dotnet test tests/MiJia.Net.Tests/MiJia.Net.Tests.csproj -c Release --verbosity normal
+
+  build-native-aot:
+    name: Build Native AOT (${{ matrix.target.name }})
+    needs: check-version
+    runs-on: ${{ matrix.target.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - name: Windows x64
+            os: windows-latest
+            rid: win-x64
+            archive_ext: zip
+            binary_name: MiHAva.Desktop.exe
+          - name: Windows ARM64
+            os: windows-latest
+            rid: win-arm64
+            archive_ext: zip
+            binary_name: MiHAva.Desktop.exe
+          - name: Linux x64
+            os: ubuntu-latest
+            rid: linux-x64
+            archive_ext: tar.gz
+            binary_name: MiHAva.Desktop
+          - name: macOS x64 (Intel)
+            os: macos-13
+            rid: osx-x64
+            archive_ext: tar.gz
+            binary_name: MiHAva.Desktop
+          - name: macOS ARM64 (Apple Silicon)
+            os: macos-14
+            rid: osx-arm64
+            archive_ext: tar.gz
+            binary_name: MiHAva.Desktop
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux Build Dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang zlib1g-dev libkrb5-dev
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '11.0.x'
+
+      - name: Publish Native AOT
+        run: |
+          dotnet publish src/MiHAva.Desktop/MiHAva.Desktop.csproj \
+            -c Release \
+            -r ${{ matrix.target.rid }} \
+            --self-contained \
+            -o publish/${{ matrix.target.rid }}
+
+      - name: Package Windows Binary (Zip)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $tag = "${{ needs.check-version.outputs.tag }}"
+          $rid = "${{ matrix.target.rid }}"
+          $pkg = "MiHAva-Desktop-${tag}-${rid}.zip"
+          Compress-Archive -Path "publish/${rid}/*" -DestinationPath $pkg
+          Write-Host "Created archive: $pkg"
+
+      - name: Package Unix Binary (Tar.gz)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          TAG="${{ needs.check-version.outputs.tag }}"
+          RID="${{ matrix.target.rid }}"
+          PKG="MiHAva-Desktop-${TAG}-${RID}.tar.gz"
+          chmod +x publish/${RID}/${{ matrix.target.binary_name }}
+          tar -czvf "${PKG}" -C "publish/${RID}" .
+          echo "Created archive: ${PKG}"
+
+      - name: Upload Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-${{ matrix.target.rid }}
+          path: MiHAva-Desktop-*
+          if-no-files-found: error
+
+  build-android:
+    name: Build Android APK
+    needs: check-version
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Android Workload
+        run: dotnet workload install android
+
+      - name: Build Android Project
+        run: dotnet build src/MiHAva.Android/MiHAva.Android.csproj -c Release -p:AndroidPackageFormat=apk
+
+      - name: Package Android APK
+        shell: bash
+        run: |
+          TAG="${{ needs.check-version.outputs.tag }}"
+          APK_FILE=$(find src/MiHAva.Android/bin/Release/net8.0-android/ -name "*.apk" | head -n 1)
+          if [ -n "$APK_FILE" ]; then
+            cp "$APK_FILE" "MiHAva-Android-${TAG}.apk"
+            echo "Copied $APK_FILE to MiHAva-Android-${TAG}.apk"
+          fi
+
+      - name: Upload Android Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-android
+          path: MiHAva-Android-*.apk
+          if-no-files-found: warn
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [check-version, test, build-native-aot]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all packages
+        uses: actions/download-artifact@v4
+        with:
+          pattern: package-*
+          path: dist
+          merge-multiple: true
+
+      - name: List Artifacts & Generate Checksums
+        shell: bash
+        run: |
+          cd dist
+          ls -la
+          sha256sum * > SHA256SUMS.txt
+          echo "=== SHA256 Checksums ==="
+          cat SHA256SUMS.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.check-version.outputs.tag }}
+          name: ${{ needs.check-version.outputs.release_title }}
+          draft: false
+          prerelease: ${{ needs.check-version.outputs.is_prerelease == 'true' }}
+          files: |
+            dist/*
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
