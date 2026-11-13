@@ -61,6 +61,13 @@ public partial class DesktopApp : MiHAvaApplication
             }
         };
 
+        var aboutItem = new NativeMenuItem("关于 MiHAva...");
+        aboutItem.Click += (s, e) =>
+        {
+            ShowMainWindow();
+            SharedMainViewModel?.OpenAbout();
+        };
+
         var exitItem = new NativeMenuItem("退出米家");
         exitItem.Click += (s, e) =>
         {
@@ -74,6 +81,8 @@ public partial class DesktopApp : MiHAvaApplication
         nativeMenu.Items.Add(openMainItem);
         nativeMenu.Items.Add(boardItem);
         nativeMenu.Items.Add(refreshItem);
+        nativeMenu.Items.Add(new NativeMenuItemSeparator());
+        nativeMenu.Items.Add(aboutItem);
         nativeMenu.Items.Add(new NativeMenuItemSeparator());
         nativeMenu.Items.Add(exitItem);
 

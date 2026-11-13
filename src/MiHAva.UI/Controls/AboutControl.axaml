@@ -1,0 +1,188 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:MiHAva.UI.ViewModels"
+             x:Class="MiHAva.UI.Controls.AboutControl"
+             x:DataType="vm:AboutViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="Button.linkBtn">
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Background" Value="{DynamicResource SystemChromeLowColor}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemBaseLowColor}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Transitions">
+                <Transitions>
+                    <BrushTransition Property="Background" Duration="0:0:0.15" />
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.1" />
+                </Transitions>
+            </Setter>
+        </Style>
+        <Style Selector="Button.linkBtn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SystemChromeMediumColor}" />
+            <Setter Property="RenderTransform" Value="scale(1.03)" />
+        </Style>
+
+        <Style Selector="Button.closeIconBtn">
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="14" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.closeIconBtn:pointerover">
+            <Setter Property="Background" Value="{DynamicResource SystemBaseLowColor}" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Width="540"
+            Background="{DynamicResource SystemChromeMediumColor}"
+            BorderBrush="{DynamicResource SystemBaseLowColor}"
+            BorderThickness="1"
+            CornerRadius="16"
+            BoxShadow="0 16 48 #55000000"
+            ClipToBounds="True">
+        <StackPanel Spacing="0">
+            <!-- 弹窗顶栏 -->
+            <Border Height="38"
+                    Padding="16,0,10,0"
+                    Background="{DynamicResource SystemChromeLowColor}"
+                    BorderBrush="{DynamicResource SystemBaseLowColor}"
+                    BorderThickness="0,0,0,1">
+                <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <TextBlock Text="ℹ️" FontSize="13" VerticalAlignment="Center"/>
+                        <TextBlock Text="关于 MiHAva" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <Button Grid.Column="1"
+                            Classes="closeIconBtn"
+                            Command="{Binding CloseCommand}"
+                            ToolTip.Tip="关闭 (ESC)">
+                        <TextBlock Text="✕" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                    </Button>
+                </Grid>
+            </Border>
+
+            <!-- 弹窗主体内容 -->
+            <Grid ColumnDefinitions="Auto,*" Margin="24,20,24,20">
+                <!-- 左侧：应用图标 -->
+                <Border Grid.Column="0"
+                        Width="110"
+                        Height="110"
+                        CornerRadius="24"
+                        ClipToBounds="True"
+                        VerticalAlignment="Top"
+                        Margin="0,4,20,0"
+                        BoxShadow="0 8 20 #30000000">
+                    <Image Source="avares://MiHAva.UI/Assets/icon.png"
+                           Stretch="UniformToFill"/>
+                </Border>
+
+                <!-- 右侧：应用信息与操作链接 -->
+                <StackPanel Grid.Column="1" Spacing="8">
+                    <!-- 标题与版本胶囊 -->
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding AppTitle}"
+                                   FontSize="26"
+                                   FontWeight="Black"
+                                   VerticalAlignment="Center"/>
+                        <!-- 仿 SourceGit 经典版本徽章胶囊 -->
+                        <Button Command="{Binding OpenReleasesCommand}"
+                                Padding="8,3"
+                                CornerRadius="10"
+                                Background="#10B981"
+                                BorderThickness="0"
+                                Cursor="Hand"
+                                VerticalAlignment="Center"
+                                ToolTip.Tip="查看 GitHub Releases 版本发布说明">
+                            <TextBlock Text="{Binding Version}"
+                                       FontSize="11"
+                                       FontWeight="Bold"
+                                       Foreground="White"/>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- 副标题 -->
+                    <TextBlock Text="{Binding SubTitle}"
+                               FontSize="13"
+                               FontWeight="SemiBold"
+                               Foreground="{DynamicResource SystemBaseHighColor}"/>
+
+                    <!-- 项目特性标签栏 -->
+                    <WrapPanel Orientation="Horizontal" Margin="0,2,0,4">
+                        <Border Background="{DynamicResource SystemBaseLowColor}" CornerRadius="6" Padding="6,2" Margin="0,0,6,4">
+                            <TextBlock Text="⚡ Native AOT 原生架构" FontSize="11" Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                        </Border>
+                        <Border Background="{DynamicResource SystemBaseLowColor}" CornerRadius="6" Padding="6,2" Margin="0,0,6,4">
+                            <TextBlock Text="🌐 局域网直连 + 云端聚合" FontSize="11" Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                        </Border>
+                        <Border Background="{DynamicResource SystemBaseLowColor}" CornerRadius="6" Padding="6,2" Margin="0,0,6,4">
+                            <TextBlock Text="🖥️ 跨平台桌面端" FontSize="11" Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                        </Border>
+                    </WrapPanel>
+
+                    <!-- 项目简短描述 -->
+                    <TextBlock Text="{Binding Description}"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               LineHeight="16"
+                               Foreground="{DynamicResource SystemBaseMediumColor}"/>
+
+                    <!-- 快捷操作链接按钮群（仿 SourceGit 设计） -->
+                    <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,6">
+                        <Button Classes="linkBtn"
+                                Command="{Binding OpenGitHubCommand}"
+                                ToolTip.Tip="访问 GitHub 开源仓库主页">
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="🐙" FontSize="12" VerticalAlignment="Center"/>
+                                <TextBlock Text="GitHub 仓库" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Classes="linkBtn"
+                                Command="{Binding OpenReleasesCommand}"
+                                ToolTip.Tip="查看所有历史版本与更新说明">
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="📜" FontSize="12" VerticalAlignment="Center"/>
+                                <TextBlock Text="版本发布" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+
+                        <Button Classes="linkBtn"
+                                Command="{Binding OpenIssuesCommand}"
+                                ToolTip.Tip="提交 Bug 缺陷或功能建议反馈">
+                            <StackPanel Orientation="Horizontal" Spacing="5">
+                                <TextBlock Text="🐞" FontSize="12" VerticalAlignment="Center"/>
+                                <TextBlock Text="问题反馈" FontSize="11" FontWeight="Medium" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <Separator Height="1" Margin="0,2" Background="{DynamicResource SystemBaseLowColor}"/>
+
+                    <!-- 环境与运行时元数据 -->
+                    <StackPanel Spacing="3">
+                        <TextBlock Text="{Binding RuntimeInfo}"
+                                   FontSize="10"
+                                   Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                        <TextBlock Text="{Binding OsDescription}"
+                                   FontSize="10"
+                                   Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                        <TextBlock Text="{Binding Copyright}"
+                                   FontSize="10"
+                                   Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                        <TextBlock Text="{Binding LicenseText}"
+                                   FontSize="10"
+                                   Foreground="{DynamicResource SystemBaseMediumColor}"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </StackPanel>
+    </Border>
+</UserControl>

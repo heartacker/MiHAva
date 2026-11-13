@@ -121,6 +121,12 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     [ObservableProperty]
     private bool _isCategoryDetailOpen;
 
+    [ObservableProperty]
+    private AboutViewModel? _aboutVm;
+
+    [ObservableProperty]
+    private bool _isAboutOpen;
+
     public ObservableCollection<SceneCategorySummaryGroup> SceneCategories { get; } = [];
 
     [ObservableProperty]
@@ -437,6 +443,23 @@ public partial class MainViewModel : ObservableObject, IAsyncDisposable
     public void CloseCategoryDetail()
     {
         IsCategoryDetailOpen = false;
+    }
+
+    [RelayCommand]
+    public void OpenAbout()
+    {
+        if (AboutVm == null)
+        {
+            AboutVm = new AboutViewModel();
+            AboutVm.RequestClose += () => IsAboutOpen = false;
+        }
+        IsAboutOpen = true;
+    }
+
+    [RelayCommand]
+    public void CloseAbout()
+    {
+        IsAboutOpen = false;
     }
 
     [ObservableProperty]

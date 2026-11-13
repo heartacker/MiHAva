@@ -213,6 +213,13 @@
                                 Padding="10,6"
                                 CornerRadius="10"
                                 FontSize="12"/>
+                        <Button Command="{Binding OpenAboutCommand}"
+                                ToolTip.Tip="关于 MiHAva (版本与项目信息)"
+                                Padding="8,6"
+                                CornerRadius="10"
+                                FontSize="12">
+                            <TextBlock Text="ℹ️" FontSize="12" VerticalAlignment="Center"/>
+                        </Button>
                         <Button Content="刷新" 
                                 Command="{Binding RefreshAllCommand}"
                                 IsEnabled="{Binding !IsRefreshing}"
@@ -258,6 +265,20 @@
                                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                                     <TextBlock Text="🔄" FontSize="14"/>
                                                     <TextBlock Text="切换账号 / 登录新账号" FontSize="12" FontWeight="Medium"/>
+                                                </StackPanel>
+                                            </Button>
+
+                                            <!-- 关于 MiHAva -->
+                                            <Button HorizontalAlignment="Stretch"
+                                                    HorizontalContentAlignment="Left"
+                                                    Padding="10,8"
+                                                    CornerRadius="8"
+                                                    Background="{DynamicResource SystemChromeLowColor}"
+                                                    Command="{Binding OpenAboutCommand}"
+                                                    Cursor="Hand">
+                                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                                    <TextBlock Text="ℹ️" FontSize="14"/>
+                                                    <TextBlock Text="关于 MiHAva" FontSize="12" FontWeight="Medium"/>
                                                 </StackPanel>
                                             </Button>
 
@@ -519,12 +540,31 @@
         </Grid>
 
         <!-- 5. 全局分类房间明细弹窗遮罩（点击分类“›”后呼出，查看该品类每个房间内的详情） -->
-        <Grid Background="#66000000"
-              IsVisible="{Binding IsCategoryDetailOpen}">
+        <Grid IsVisible="{Binding IsCategoryDetailOpen}">
+            <Button Background="#66000000"
+                    Command="{Binding CloseCategoryDetailCommand}"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    BorderThickness="0"
+                    Padding="0"/>
             <ctrl:SceneCategoryDetailControl DataContext="{Binding CategoryDetailVm}"
                                              HorizontalAlignment="Center"
                                              VerticalAlignment="Center"
                                              Margin="32"/>
+        </Grid>
+
+        <!-- 6. 全局关于页面弹窗遮罩（仿 SourceGit 经典关于页设计） -->
+        <Grid IsVisible="{Binding IsAboutOpen}">
+            <Button Background="#66000000"
+                    Command="{Binding CloseAboutCommand}"
+                    HorizontalAlignment="Stretch"
+                    VerticalAlignment="Stretch"
+                    BorderThickness="0"
+                    Padding="0"/>
+            <ctrl:AboutControl DataContext="{Binding AboutVm}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
+                               Margin="32"/>
         </Grid>
     </Grid>
 </UserControl>
