@@ -14,16 +14,42 @@ public partial class DesktopApp : MiHAvaApplication
     private TrayIcon? _trayIcon;
     private TrayControlWindow? _trayWindow;
     private DesktopMainWindow? _mainWindow;
+    private SingleInstanceService? _singleInstance;
 
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
+            // 仿照 SourceGit 实现的单例检测机制（文件排他锁 + 本地命名管道 IPC）
+            _singleInstance = new SingleInstanceService();
+            if (!_singleInstance.IsFirstInstance)
+            {
+                var arg = desktop.Args is { Length: > 0 } ? desktop.Args[0] : "ACTIVATE";
+                _singleInstance.SendToFirstInstance(arg);
+                Environment.Exit(0);
+                return;
+            }
+
             _mainWindow = new DesktopMainWindow();
             desktop.MainWindow = _mainWindow;
 
             // 初始化系统托盘
             SetupSystemTray(desktop);
+
+            // 监听后续实例发送的唤醒或传参指令
+            _singleInstance.MessageReceived += msg =>
+            {
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    ShowMainWindow();
+                });
+            };
+
+            desktop.Exit += (_, _) =>
+            {
+                _singleInstance?.Dispose();
+                _singleInstance = null;
+            };
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -146,8 +172,19 @@ public partial class DesktopApp : MiHAvaApplication
             _mainWindow = new DesktopMainWindow();
         }
 
-        _mainWindow.Show();
-        _mainWindow.WindowState = WindowState.Normal;
+        if (!_mainWindow.IsVisible)
+        {
+            _mainWindow.Show();
+        }
+
+        if (_mainWindow.WindowState == WindowState.Minimized)
+        {
+            _mainWindow.WindowState = WindowState.Normal;
+        }
+
         _mainWindow.Activate();
+        _mainWindow.Topmost = true;
+        _mainWindow.Topmost = false;
+        _mainWindow.Focus();
     }
 }
