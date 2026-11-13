@@ -28,4 +28,14 @@
     <AvaloniaResource Include="Assets\**" />
   </ItemGroup>
 
+  <Target BeforeTargets="GetAssemblyAttributes" Name="GenVersionInfo">
+    <Exec Command="git describe --tags --always --dirty" ConsoleToMsBuild="True" IgnoreExitCode="true">
+      <Output PropertyName="FriendlyVersion" TaskParameter="ConsoleOutput"/>
+    </Exec>
+
+    <ItemGroup>
+      <AssemblyMetadata Include="FriendlyVersion" Value="$([System.String]::Copy('$(FriendlyVersion)').Trim())"/>
+    </ItemGroup>
+  </Target>
+
 </Project>

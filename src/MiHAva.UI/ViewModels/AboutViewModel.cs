@@ -35,20 +35,39 @@ public partial class AboutViewModel : ObservableObject
 
     public AboutViewModel()
     {
-        // 动态读取版本号
+        // 动态读取版本号（支持从 git describe 提取 FriendlyVersion：tag + git hash）
         var assembly = typeof(AboutViewModel).Assembly;
-        var infoVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-        if (!string.IsNullOrWhiteSpace(infoVersion))
+        string? detectedVersion = null;
+
+        var metadataAttrs = assembly.GetCustomAttributes<AssemblyMetadataAttribute>();
+        foreach (var attr in metadataAttrs)
         {
-            var plusIdx = infoVersion.IndexOf('+');
-            var cleanVer = plusIdx > 0 ? infoVersion[..plusIdx] : infoVersion;
-            Version = cleanVer.StartsWith('v') ? cleanVer : $"v{cleanVer}";
+            if (attr.Key.Equals("FriendlyVersion", StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrWhiteSpace(attr.Value))
+            {
+                var val = attr.Value.Trim();
+                detectedVersion = val.StartsWith('v') ? val : $"v{val}";
+                break;
+            }
         }
-        else
+
+        if (string.IsNullOrWhiteSpace(detectedVersion))
         {
-            var v = assembly.GetName().Version;
-            Version = v != null ? $"v{v.Major}.{v.Minor}.{v.Build}" : "v1.0.0";
+            var infoVersion = assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
+            if (!string.IsNullOrWhiteSpace(infoVersion))
+            {
+                var plusIdx = infoVersion.IndexOf('+');
+                var cleanVer = plusIdx > 0 ? infoVersion[..plusIdx] : infoVersion;
+                detectedVersion = cleanVer.StartsWith('v') ? cleanVer : $"v{cleanVer}";
+            }
+            else
+            {
+                var v = assembly.GetName().Version;
+                detectedVersion = v != null ? $"v{v.Major}.{v.Minor}.{v.Build}" : "v1.0.0";
+            }
         }
+
+        Version = detectedVersion;
 
         // 运行时与架构信息
         var arch = RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();

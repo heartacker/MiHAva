@@ -8,6 +8,7 @@
     <LangVersion>latest</LangVersion>
     <BuiltInComInteropSupport Condition="$([MSBuild]::IsOSPlatform('Windows'))">true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>App.ico</ApplicationIcon>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
 
     <!-- Native AOT 发布与单文件优化配置 -->
@@ -28,5 +29,15 @@
   <ItemGroup>
     <ProjectReference Include="..\MiHAva.UI\MiHAva.UI.csproj" />
   </ItemGroup>
+
+  <Target BeforeTargets="GetAssemblyAttributes" Name="GenVersionInfo">
+    <Exec Command="git describe --tags --always --dirty" ConsoleToMsBuild="True" IgnoreExitCode="true">
+      <Output PropertyName="FriendlyVersion" TaskParameter="ConsoleOutput"/>
+    </Exec>
+
+    <ItemGroup>
+      <AssemblyMetadata Include="FriendlyVersion" Value="$([System.String]::Copy('$(FriendlyVersion)').Trim())"/>
+    </ItemGroup>
+  </Target>
 
 </Project>
